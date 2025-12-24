@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 
-const verifyAdminToken = (req, res, next) => {
+const adminAuth = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -14,10 +14,10 @@ const verifyAdminToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // 🔥 IMPORTANT: role check
+    // 🔐 ROLE CHECK (VERY IMPORTANT)
     if (decoded.role !== "admin") {
       return res.status(403).json({
-        message: "Access denied: Admin only",
+        message: "Access denied: Admins only",
       });
     }
 
@@ -30,4 +30,4 @@ const verifyAdminToken = (req, res, next) => {
   }
 };
 
-module.exports = verifyAdminToken;
+module.exports = adminAuth;

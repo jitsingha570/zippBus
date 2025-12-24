@@ -3,26 +3,82 @@ import axios from "axios";
 
 function RouteList() {
   const [routes, setRoutes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/routes")
-      .then(res => {
-        const uniqueRoutes = new Set();
-        res.data.forEach(bus => {
-          const route = bus.stoppages.map(stop => stop.name).join(" > ");
-          uniqueRoutes.add(route);
+    const fetchRoutes = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        // ✅ Get admin token
+        const token = localStorage.getItem("adminToken");
+        if (!token) {
+          setError("Admin not logged in");
+          setLoading(false);
+          return;
+        }
+
+        // ✅ Fetch buses (with token) to extract routes
+        const res = await axios.get("http://localhost:5000/api/buses/routes", {
+          headers: { Authorization: `Bearer ${token}` },
         });
+
+        const buses = Array.isArray(res.data.payload) ? res.data.payload : [];
+
+        // ✅ Create unique routes
+        const uniqueRoutes = new Set();
+        buses.forEach((bus) => {
+          if (bus.stoppages?.length > 0) {
+            const route = bus.stoppages.map((stop) => stop.name).join(" > ");
+            uniqueRoutes.add(route);
+          }
+        });
+
         setRoutes([...uniqueRoutes]);
-      })
-      .catch(err => console.error(err));
+      } catch (err) {
+        console.error("API Error:", err);
+        setError(err.response?.data?.message || "Failed to load routes");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoutes();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="p-6 text-center text-gray-700 font-semibold">
+        Loading routes...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 text-center text-red-500 font-semibold">{error}</div>
+    );
+  }
+
+  if (routes.length === 0) {
+    return (
+      <div className="p-6 text-center text-gray-600 font-medium">
+        No routes found.
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">All Routes</h2>
+      <h2 className="text-2xl font-bold mb-4">All Routes</h2>
       <ul className="space-y-2">
         {routes.map((route, i) => (
-          <li key={i} className="bg-white p-3 rounded shadow">
+          <li
+            key={i}
+            className="bg-white p-3 rounded shadow hover:shadow-md transition"
+          >
             {route}
           </li>
         ))}
@@ -32,4 +88,3 @@ function RouteList() {
 }
 
 export default RouteList;
-

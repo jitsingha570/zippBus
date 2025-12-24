@@ -13,18 +13,20 @@ const busSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: ['AC Seater', 'Non-AC Seater', 'Sleeper AC', 'Sleeper Non-AC', 'Volvo', 'Luxury'],
-    default: 'AC Seater'
+    default: 'Non-AC Seater' // ✅ default changed
   },
   capacity: {
     type: Number,
     required: true,
     min: 20,
-    max: 60
+    max: 60,
+    default: 40 // optional: set default capacity
   },
   fare: {
     type: Number,
     required: true,
-    min: 50
+    min: 50,
+    default: 100 // optional: set default fare
   },
   amenities: [{
     type: String,

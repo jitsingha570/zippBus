@@ -1,3 +1,4 @@
+const mongoose = require("mongoose"); // <-- ADD THIS
 const Bus = require("../models/busModel");
 const BusRequest = require("../models/busRequestModel"); // ✅ new schema
 
@@ -117,32 +118,53 @@ const getBusDetails = async (req, res) => {
 const getAllBusRequests = async (req, res) => {
   try {
     const requests = await BusRequest.find({ status: "pending" });
-    res.json(requests);
+
+    res.status(200).json({
+      success: true,
+      payload: requests,
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
+
 
 // -------------------------
 // ADMIN: Approve or Reject bus requests
 // -------------------------
 const approveBusRequest = async (req, res) => {
   try {
-    const request = await BusRequest.findById(req.params.id);
-    if (!request) {
-      return res.status(404).json({ error: "Request not found" });
+    const id = req.params.id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid bus request ID" });
     }
 
+    const request = await BusRequest.findById(id);
+    if (!request) return res.status(404).json({ error: "Bus request not found" });
+
     const existingBus = await Bus.findOne({ busNumber: request.busNumber });
-    if (existingBus) {
-      return res.status(400).json({ error: "Bus number already exists" });
-    }
+    if (existingBus) return res.status(400).json({ error: "Bus number already exists" });
+
+    // ✅ Match enum values exactly
+    const validBusTypes = ['AC Seater', 'Non-AC Seater', 'Sleeper AC', 'Sleeper Non-AC', 'Volvo', 'Luxury'];
+    const busType = validBusTypes.includes(request.busType) ? request.busType : 'Non-AC Seater'; // default
+
+    const capacity = request.capacity >= 20 ? request.capacity : 40; // default 40
+    const fare = request.fare >= 50 ? request.fare : 100;            // default 100
 
     const newBus = new Bus({
       busName: request.busName,
       busNumber: request.busNumber,
-      stoppages: request.stoppages,
-      owner: request.userId // track the owner
+      stoppages: Array.isArray(request.stoppages) ? request.stoppages : [],
+      owner: request.userId,
+      busType,
+      capacity,
+      fare,
+      amenities: Array.isArray(request.amenities) ? request.amenities : []
     });
 
     await newBus.save();
@@ -150,30 +172,36 @@ const approveBusRequest = async (req, res) => {
     request.status = "approved";
     await request.save();
 
-    res.json({ message: "Bus approved and added to main DB", bus: newBus });
+    res.json({ success: true, message: "Bus approved and added to main DB", bus: newBus });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Approve Bus Error:", err);
+    res.status(500).json({ error: "Internal Server Error", details: err.message });
   }
 };
 
+
 const rejectBusRequest = async (req, res) => {
   try {
-    const { rejectionReason } = req.body; // optional rejection reason
-    const request = await BusRequest.findById(req.params.id);
-    
+    const id = req.params.id;
+    const { rejectionReason } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid bus request ID" });
+    }
+
+    const request = await BusRequest.findById(id);
     if (!request) {
-      return res.status(404).json({ error: "Request not found" });
+      return res.status(404).json({ error: "Bus request not found" });
     }
 
     request.status = "rejected";
-    if (rejectionReason) {
-      request.rejectionReason = rejectionReason;
-    }
+    if (rejectionReason) request.rejectionReason = rejectionReason;
     await request.save();
 
-    res.json({ message: "Bus request rejected" });
+    res.json({ success: true, message: "Bus request rejected", request });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Reject Bus Error:", err);
+    res.status(500).json({ error: "Internal Server Error", details: err.message });
   }
 };
 
@@ -181,49 +209,84 @@ const rejectBusRequest = async (req, res) => {
 // Existing search / admin APIs
 // -------------------------
 const searchBus = async (req, res) => {
-  const from = req.query.from?.toLowerCase();
-  const to = req.query.to?.toLowerCase();
-
   try {
-    const buses = await Bus.find({ "stoppages.name": { $all: [from, to] } });
+    let { from, to } = req.query;
 
-    const filteredBuses = buses
-      .map(bus => {
-        const stops = bus.stoppages.map(s => s.name.toLowerCase());
-        const fromIndex = stops.indexOf(from);
-        const toIndex = stops.indexOf(to);
-
-        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return null;
-
-        const direction = fromIndex < toIndex ? "going" : "return";
-        const fromTime = direction === "going"
-          ? bus.stoppages[fromIndex].goingTime
-          : bus.stoppages[fromIndex].returnTime;
-
-        const toTime = direction === "going"
-          ? bus.stoppages[toIndex].goingTime
-          : bus.stoppages[toIndex].returnTime;
-
-        return {
-          busName: bus.busName,
-          busNumber: bus.busNumber,
-          direction,
-          from: { name: from, time: fromTime },
-          to: { name: to, time: toTime },
-          fullStoppages: bus.stoppages,
-        };
-      })
-      .filter(Boolean);
-
-    if (filteredBuses.length === 0) {
-      return res.status(404).json({ message: "No buses found on this route." });
+    // 1️⃣ Validate query params
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        message: "Both 'from' and 'to' locations are required"
+      });
     }
 
-    res.json(filteredBuses);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    from = from.trim().toLowerCase();
+    to = to.trim().toLowerCase();
+
+    // 2️⃣ Fetch all buses
+    const buses = await Bus.find({}).lean();
+
+    if (!buses.length) {
+      return res.json({
+        success: true,
+        count: 0,
+        buses: [],
+        message: "No buses available in database"
+      });
+    }
+
+    const matchedBuses = [];
+
+    // 3️⃣ Process each bus
+    for (const bus of buses) {
+      if (!bus.stoppages || bus.stoppages.length < 2) continue;
+
+      // Normalize stoppage names
+      const stoppageNames = bus.stoppages.map(s =>
+        s.name.trim().toLowerCase()
+      );
+
+      // 4️⃣ Partial + case-insensitive match
+      const fromIndex = stoppageNames.findIndex(name =>
+        name.includes(from)
+      );
+      const toIndex = stoppageNames.findIndex(name =>
+        name.includes(to)
+      );
+
+      // 5️⃣ Validate order
+      if (fromIndex !== -1 && toIndex !== -1 && fromIndex < toIndex) {
+        matchedBuses.push({
+          _id: bus._id,
+          busName: bus.busName,
+          busNumber: bus.busNumber,
+          busType: bus.busType,
+          fare: bus.fare,
+          capacity: bus.capacity,
+          amenities: bus.amenities,
+          fromStop: bus.stoppages[fromIndex],
+          toStop: bus.stoppages[toIndex]
+        });
+      }
+    }
+
+    // 6️⃣ Final response
+    res.json({
+      success: true,
+      count: matchedBuses.length,
+      buses: matchedBuses
+    });
+
+  } catch (error) {
+    console.error("Search Bus Error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Internal Server Error",
+      details: error.message
+    });
   }
 };
+
 
 const getAllBuses = async (req, res) => {
   try {

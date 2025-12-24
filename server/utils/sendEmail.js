@@ -1,37 +1,27 @@
-const nodemailer = require("nodemailer");
+// server/utils/sendEmail.js
+const brevo = require("@getbrevo/brevo");
 
-const sendEmail = async (to, subject, text) => {
+const sendEmail = async (to, subject, message) => {
   try {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      throw new Error("Missing Brevo SMTP credentials in environment variables.");
-    }
+    const apiInstance = new brevo.TransactionalEmailsApi();
+    apiInstance.authentications["apiKey"].apiKey = process.env.BREVO_API_KEY;
 
-    // Create transporter using Brevo SMTP
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 587,
-      secure: false, // Use TLS
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
+    const sendSmtpEmail = new brevo.SendSmtpEmail();
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = message;
+    sendSmtpEmail.sender = {
+      name: process.env.EMAIL_SENDER_NAME || "ZippBus",
+      email: process.env.EMAIL_SENDER_EMAIL || "jitsingha570@gmail.com",
+    };
+    sendSmtpEmail.to = [{ email: to }];
 
-    // Send email
-    const info = await transporter.sendMail({
-      from: `"ZippBus" <jitsingha570@gmail.com>`, // ✅ Verified sender from Brevo
-      to,
-      subject,
-      text,
-    });
-
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
     console.log(`✅ Email sent successfully to ${to}`);
-    console.log("📧 Message ID:", info.messageId);
     return true;
   } catch (error) {
-    console.error("❌ Email sending error:", error.message);
-    console.error("🔍 Full error details:", error);
-    throw new Error("Failed to send OTP email. Please check your SMTP configuration.");
+    console.error("❌ Email sending failed:", error.message);
+    console.error("🔍 Full error:", error);
+    return false;
   }
 };
 

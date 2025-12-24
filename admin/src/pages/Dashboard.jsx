@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import SearchBus from "../components/SearchBus";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function Dashboard() {
   const [stats, setStats] = useState({
@@ -26,7 +27,7 @@ function Dashboard() {
       setLoading(true);
 
       // Fetch all buses
-      const busesRes = await axios.get("http://localhost:5000/api/buses");
+      const busesRes = await axios.get(`${API_URL}/api/buses`);
       const buses = busesRes.data;
       
       // Calculate routes
@@ -41,7 +42,7 @@ function Dashboard() {
       // Fetch platform stats
       let platformStats = { totalUsers: 0, totalBuses: 0, totalRoutes: 0 };
       try {
-        const statsRes = await axios.get("http://localhost:5000/api/stats");
+        const statsRes = await axios.get(`${API_URL}/api/stats`);
         platformStats = statsRes.data;
       } catch (err) {
         console.log("Platform stats not available");
@@ -52,7 +53,7 @@ function Dashboard() {
       try {
         const token = localStorage.getItem("token");
         if (token) {
-          const requestsRes = await axios.get("http://localhost:5000/api/buses/requests", {
+          const requestsRes = await axios.get(`${API_URL}/api/buses/requests`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           pendingCount = requestsRes.data.filter(req => req.status === 'pending').length;

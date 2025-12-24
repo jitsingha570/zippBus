@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function BusList() {
   const [buses, setBuses] = useState([]);
@@ -20,7 +21,7 @@ function BusList() {
         }
 
         // ✅ Fetch buses with token in headers
-        const res = await axios.get("http://localhost:5000/api/buses", {
+        const res = await axios.get(`${API_URL}/api/buses`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminRequestsPage = () => {
   const [requests, setRequests] = useState([]);
@@ -18,7 +19,7 @@ const AdminRequestsPage = () => {
       const token = localStorage.getItem("adminToken");
       if (!token) throw new Error("Admin not logged in");
 
-      const res = await axios.get("http://localhost:5000/api/buses/requests", {
+      const res = await axios.get(`${API_URL}/api/buses/requests`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -45,12 +46,13 @@ const AdminRequestsPage = () => {
       setActionLoading(id);
       const token = localStorage.getItem("adminToken");
       await axios.put(
-        `http://localhost:5000/api/buses/approve/${id}`,
+        `${API_URL}/api/buses/approve/${id}`,
         {}, // empty body
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchRequests();
-    } catch (err) {
+    }
+      catch (err) {
       console.error("Approve error:", err);
       alert(err.response?.data?.message || "Failed to approve request");
     } finally {
@@ -66,7 +68,7 @@ const AdminRequestsPage = () => {
       setActionLoading(id);
       const token = localStorage.getItem("adminToken");
       await axios.put(
-        `http://localhost:5000/api/buses/reject/${id}`,
+        `${API_URL}/api/buses/reject/${id}`,
         {}, // empty body
         { headers: { Authorization: `Bearer ${token}` } }
       );

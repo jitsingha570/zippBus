@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminLogin = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -29,7 +30,7 @@ const AdminLogin = () => {
 
     setLoading(true);
     try {
-      const res = await axios.post("http://localhost:5000/api/admins/login", {
+      const res = await axios.post(`${API_URL}/api/admins/login`, {
         email: form.email,
         password: form.password,
       });
@@ -87,7 +88,7 @@ navigate("/dashboard");
 
     setLoading(true);
     try {
-      await axios.post("http://localhost:5000/api/admins/register", {
+      await axios.post(`${API_URL}/api/admins/register`, {
         name: form.name,
         email: form.email,
         password: form.password

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
 
 function RouteList() {
   const [routes, setRoutes] = useState([]);
@@ -21,7 +22,7 @@ function RouteList() {
         }
 
         // ✅ Fetch buses (with token) to extract routes
-        const res = await axios.get("http://localhost:5000/api/buses/routes", {
+        const res = await axios.get(`${API_URL}/api/buses/routes`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

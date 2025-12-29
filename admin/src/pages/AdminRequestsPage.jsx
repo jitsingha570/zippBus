@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+
 const API_URL = import.meta.env.VITE_API_URL;
 
 const AdminRequestsPage = () => {
@@ -23,7 +24,6 @@ const AdminRequestsPage = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // ✅ Extract payload
       setRequests(Array.isArray(res.data.payload) ? res.data.payload : []);
     } catch (err) {
       console.error("Fetch error:", err);
@@ -44,17 +44,21 @@ const AdminRequestsPage = () => {
   const handleApprove = async (id) => {
     try {
       setActionLoading(id);
+
       const token = localStorage.getItem("adminToken");
-      await axios.put(
+      if (!token) throw new Error("Admin not logged in");
+
+      const res = await axios.put(
         `${API_URL}/api/buses/approve/${id}`,
         {}, // empty body
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      alert(res.data.message || "Bus approved successfully");
       fetchRequests();
-    }
-      catch (err) {
-      console.error("Approve error:", err);
-      alert(err.response?.data?.message || "Failed to approve request");
+    } catch (err) {
+      console.error("Approve error:", err.response?.data || err.message);
+      alert(err.response?.data?.error || "Failed to approve request");
     } finally {
       setActionLoading(null);
     }
@@ -65,17 +69,25 @@ const AdminRequestsPage = () => {
   // ================================
   const handleReject = async (id) => {
     try {
+      const reason = prompt("Enter rejection reason:", "No reason provided");
+      if (reason === null) return; // Cancelled
+
       setActionLoading(id);
+
       const token = localStorage.getItem("adminToken");
-      await axios.put(
+      if (!token) throw new Error("Admin not logged in");
+
+      const res = await axios.put(
         `${API_URL}/api/buses/reject/${id}`,
-        {}, // empty body
+        { rejectionReason: reason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      alert(res.data.message || "Bus request rejected");
       fetchRequests();
     } catch (err) {
-      console.error("Reject error:", err);
-      alert(err.response?.data?.message || "Failed to reject request");
+      console.error("Reject error:", err.response?.data || err.message);
+      alert(err.response?.data?.error || "Failed to reject request");
     } finally {
       setActionLoading(null);
     }

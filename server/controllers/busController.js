@@ -7,20 +7,38 @@ const BusRequest = require("../models/busRequestModel"); // ✅ new schema
 // -------------------------
 const requestBus = async (req, res) => {
   try {
-    const { busName, busNumber, stoppages } = req.body;
+    console.log("BODY:", req.body);
+    console.log("USER:", req.user);
 
-    // store in BusRequest instead of Bus
-    const newRequest = new BusRequest({
-      userId: req.user.id, // from auth middleware
+    const {
       busName,
       busNumber,
+      busType,
+      capacity,
+      fare,
+      amenities,
+      stoppages
+    } = req.body;
+       if (!req.user?.id) {
+      return res.status(401).json({ error: "Unauthorized" });
+      }
+    const newRequest = new BusRequest({
+      userId: req.user.id,
+      busName,
+      busNumber,
+      busType,
+      capacity,
+      fare,
+      amenities,
       stoppages
     });
 
     await newRequest.save();
-    res.status(201).json({ message: "Bus request submitted", request: newRequest });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(201).json(newRequest);
+
+  } catch (error) {
+    console.error("BACKEND ERROR 👉", error);
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -137,71 +155,145 @@ const getAllBusRequests = async (req, res) => {
 // -------------------------
 const approveBusRequest = async (req, res) => {
   try {
-    const id = req.params.id;
+    const { id } = req.params;
 
+    // 1️⃣ Validate MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ error: "Invalid bus request ID" });
     }
 
-    const request = await BusRequest.findById(id);
-    if (!request) return res.status(404).json({ error: "Bus request not found" });
-
-    const existingBus = await Bus.findOne({ busNumber: request.busNumber });
-    if (existingBus) return res.status(400).json({ error: "Bus number already exists" });
-
-    // ✅ Match enum values exactly
-    const validBusTypes = ['AC Seater', 'Non-AC Seater', 'Sleeper AC', 'Sleeper Non-AC', 'Volvo', 'Luxury'];
-    const busType = validBusTypes.includes(request.busType) ? request.busType : 'Non-AC Seater'; // default
-
-    const capacity = request.capacity >= 20 ? request.capacity : 40; // default 40
-    const fare = request.fare >= 50 ? request.fare : 100;            // default 100
-
-    const newBus = new Bus({
-      busName: request.busName,
-      busNumber: request.busNumber,
-      stoppages: Array.isArray(request.stoppages) ? request.stoppages : [],
-      owner: request.userId,
-      busType,
-      capacity,
-      fare,
-      amenities: Array.isArray(request.amenities) ? request.amenities : []
-    });
-
-    await newBus.save();
-
-    request.status = "approved";
-    await request.save();
-
-    res.json({ success: true, message: "Bus approved and added to main DB", bus: newBus });
-  } catch (err) {
-    console.error("Approve Bus Error:", err);
-    res.status(500).json({ error: "Internal Server Error", details: err.message });
-  }
-};
-
-
-const rejectBusRequest = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const { rejectionReason } = req.body;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ error: "Invalid bus request ID" });
-    }
-
+    // 2️⃣ Find request
     const request = await BusRequest.findById(id);
     if (!request) {
       return res.status(404).json({ error: "Bus request not found" });
     }
 
-    request.status = "rejected";
-    if (rejectionReason) request.rejectionReason = rejectionReason;
+    // 3️⃣ Prevent double approval
+    if (request.status === "approved") {
+      return res.status(400).json({ error: "Bus already approved" });
+    }
+
+    // 4️⃣ Check duplicate bus number
+    const existingBus = await Bus.findOne({ busNumber: request.busNumber });
+    if (existingBus) {
+      return res.status(400).json({ error: "Bus number already exists" });
+    }
+
+    // 5️⃣ Validate owner
+    if (!request.userId) {
+      return res.status(400).json({ error: "Request has no userId (owner missing)" });
+    }
+
+    // 6️⃣ Bus Type mapping (VERY IMPORTANT)
+    const validBusTypes = [
+      "AC Seater",
+      "Non-AC Seater",
+      "Sleeper AC",
+      "Sleeper Non-AC",
+      "Volvo",
+      "Luxury",
+    ];
+
+    let busType = "Non-AC Seater";
+    if (validBusTypes.includes(request.busType)) {
+      busType = request.busType;
+    }
+
+    // 7️⃣ Safe defaults
+    const capacity =
+      typeof request.capacity === "number" && request.capacity >= 20
+        ? request.capacity
+        : 40;
+
+    const fare =
+      typeof request.fare === "number" && request.fare >= 50
+        ? request.fare
+        : 100;
+
+    const stoppages =
+      Array.isArray(request.stoppages) && request.stoppages.length >= 3
+        ? request.stoppages
+        : [];
+
+    // 8️⃣ Create main Bus
+    const newBus = new Bus({
+      busName: request.busName,
+      busNumber: request.busNumber,
+      busType,
+      capacity,
+      fare,
+      amenities: Array.isArray(request.amenities) ? request.amenities : [],
+      stoppages,
+      owner: request.userId,
+    });
+
+    await newBus.save();
+
+    // 9️⃣ Update request status
+    request.status = "approved";
     await request.save();
 
-    res.json({ success: true, message: "Bus request rejected", request });
+    return res.status(200).json({
+      success: true,
+      message: "Bus approved successfully",
+      bus: newBus,
+    });
+
+  } catch (err) {
+    console.error("Approve Bus Error:", err);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      details: err.message,
+    });
+  }
+};
+
+const rejectBusRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rejectionReason } = req.body;
+
+    // 1️⃣ Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid bus request ID" });
+    }
+
+    // 2️⃣ Find request
+    const request = await BusRequest.findById(id);
+    if (!request) {
+      return res.status(404).json({ error: "Bus request not found" });
+    }
+
+    // 3️⃣ Prevent re-rejection
+    if (request.status === "rejected") {
+      return res.status(400).json({ error: "Bus request is already rejected" });
+    }
+
+    // 4️⃣ Prevent approving a rejected request
+    if (request.status === "approved") {
+      return res.status(400).json({ error: "Bus request already approved, cannot reject" });
+    }
+
+    // 5️⃣ Set status and optional rejection reason
+    request.status = "rejected";
+    request.rejectionReason = rejectionReason ? rejectionReason : "No reason provided";
+
+    // 6️⃣ Save changes
+    await request.save();
+
+    // 7️⃣ Respond
+    return res.status(200).json({
+      success: true,
+      message: "Bus request rejected successfully",
+      request,
+    });
+
   } catch (err) {
     console.error("Reject Bus Error:", err);
-    res.status(500).json({ error: "Internal Server Error", details: err.message });
+    return res.status(500).json({
+      error: "Internal Server Error",
+      details: err.message,
+    });
   }
 };
 

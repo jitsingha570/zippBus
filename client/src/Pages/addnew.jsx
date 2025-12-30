@@ -22,33 +22,37 @@ function AddNewBus() {
   const busTypes = ['AC Seater', 'Non-AC Seater', 'Sleeper AC', 'Sleeper Non-AC', 'Volvo', 'Luxury'];
   const availableAmenities = ['WiFi', 'Charging Points', 'Entertainment', 'Blankets', 'Snacks', 'Water Bottle', 'GPS Tracking', 'CCTV'];
 
-  const handleStoppageChange = (index, field, value) => {
+    const handleStoppageChange = (index, field, value) => {
     const newStoppages = [...stoppages];
-    if (field === 'name') {
-      newStoppages[index][field] = value.toLowerCase();
-    } else {
-      newStoppages[index][field] = value;
-    }
-    setStoppages(newStoppages);
+    newStoppages[index][field] = field === 'name' ? value.toLowerCase() : value;
+    
+    // Update orders automatically
+    const updatedStoppages = newStoppages.map((stop, i) => ({ ...stop, order: i + 1 }));
+    setStoppages(updatedStoppages);
   };
 
   const addStoppage = () => {
     if (stoppages.length < 10) {
-      setStoppages([...stoppages, { name: '', goingTime: '', returnTime: '' }]);
+      const newStops = [...stoppages, { name: '', goingTime: '', returnTime: '', order: stoppages.length + 1 }];
+      setStoppages(newStops);
     } else {
       setMessage("You can add a maximum of 10 stoppages.");
     }
   };
 
+
   const removeStoppage = (index) => {
-    if (stoppages.length > 3) {
-      const newStoppages = [...stoppages];
-      newStoppages.splice(index, 1);
-      setStoppages(newStoppages);
-    } else {
-      setMessage("Minimum 3 stoppages are required.");
-    }
-  };
+  if (stoppages.length > 3) {
+    const newStoppages = [...stoppages];
+    newStoppages.splice(index, 1);
+    // Recalculate orders
+    const updatedStoppages = newStoppages.map((stop, i) => ({ ...stop, order: i + 1 }));
+    setStoppages(updatedStoppages);
+  } else {
+    setMessage("Minimum 3 stoppages are required.");
+  }
+};
+
 
   const handleAmenityToggle = (amenity) => {
     setAmenities(prev => 

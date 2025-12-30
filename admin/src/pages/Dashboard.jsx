@@ -176,13 +176,14 @@ function Dashboard() {
                 onClick={() => navigate('/request')}
               />
               <ClickableStatCard
-                title="Approved Buses"
-                value={stats.approvedBuses}
-                icon="✅"
-                color="from-emerald-500 to-emerald-600"
-                description="Active and verified"
-                onClick={() => navigate('/buses?status=approved')}
+                title="Pending Bus Update Requests"
+                value={stats.pendingBusUpdates}
+                icon="⏳"
+                color="from-yellow-500 to-yellow-600"
+                description="Waiting for admin approval"
+                onClick={() => navigate('/requestUpdate')}
               />
+
               <StatCard
                 title="Platform Health"
                 value="Excellent"

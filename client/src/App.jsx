@@ -8,7 +8,8 @@ import LoginPage from "./Pages/LoginPage";
 import ProfilePage from "./Pages/AccountPage";
 import AccountPage from "./Pages/AccountPage";
 import SearchBus from "./Pages/SearchBus";
-
+import SearchBusByNumber from "./Pages/BusSearchByNumber"; 
+import UpdateBus from "./Pages/UpdateBus";
 
 function App() {
   return (
@@ -23,7 +24,8 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/account" element={<AccountPage/>} />
-        
+        <Route path="/searchBusByNumber" element={<SearchBusByNumber />} />
+        <Route path="/update" element={<UpdateBus/>} />
 
       </Routes>
     </Router>

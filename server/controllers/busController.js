@@ -1,6 +1,7 @@
-const mongoose = require("mongoose"); // <-- ADD THIS
+/*const mongoose = require("mongoose"); // <-- ADD THIS
 const Bus = require("../models/busModel");
 const BusRequest = require("../models/busRequestModel"); // ✅ new schema
+const BusUpdateRequest = require("../models/busUpdateRequestModel");
 
 // -------------------------
 // USER: Request to add a bus
@@ -61,45 +62,44 @@ const getMyBuses = async (req, res) => {
 // -------------------------
 const updateBus = async (req, res) => {
   try {
-    const { busId } = req.params;
-    const { busName, busNumber, busType, capacity, fare, amenities, stoppages } = req.body;
+    const { busNumber } = req.params;
+    const {
+      busName,
+      busType,
+      capacity,
+      fare,
+      amenities,
+      stoppages
+    } = req.body;
 
-    const busRequest = await BusRequest.findOne({ 
-      _id: busId, 
-      userId: req.user.id // ensure user owns this bus request
+    // 1️⃣ Find bus request by unique busNumber + user ownership
+    const busRequest = await BusRequest.findOne({
+      busNumber,
+      userId: req.user.id
     });
 
     if (!busRequest) {
-      return res.status(404).json({ error: "Bus request not found or unauthorized" });
+      return res.status(404).json({
+        error: "Bus request not found or unauthorized"
+      });
     }
 
-    // Check if bus number already exists (excluding current request)
-    const existingBus = await Bus.findOne({ busNumber });
-    const existingRequest = await BusRequest.findOne({ 
-      busNumber, 
-      _id: { $ne: busId },
-      status: { $ne: "rejected" }
-    });
+    // 2️⃣ Update only provided fields (safe partial update)
+    if (busName !== undefined) busRequest.busName = busName;
+    if (busType !== undefined) busRequest.busType = busType;
+    if (capacity !== undefined) busRequest.capacity = capacity;
+    if (fare !== undefined) busRequest.fare = fare;
+    if (amenities !== undefined) busRequest.amenities = amenities;
+    if (stoppages !== undefined) busRequest.stoppages = stoppages;
 
-    if (existingBus || existingRequest) {
-      return res.status(400).json({ error: "Bus number already exists" });
-    }
-
-    // Update the bus request
-    busRequest.busName = busName;
-    busRequest.busNumber = busNumber;
-    busRequest.busType = busType;
-    busRequest.capacity = capacity;
-    busRequest.fare = fare;
-    busRequest.amenities = amenities;
-    busRequest.stoppages = stoppages;
-    busRequest.status = "pending"; // reset to pending for re-review
-    busRequest.rejectionReason = undefined; // clear any previous rejection reason
+    // 3️⃣ Reset approval status
+    busRequest.status = "pending";
+    busRequest.rejectionReason = "";
 
     await busRequest.save();
 
-    res.json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: "Bus updated and resubmitted for approval",
       bus: busRequest
     });
@@ -107,6 +107,7 @@ const updateBus = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // -------------------------
 // USER: Get specific bus details
@@ -404,15 +405,337 @@ const getAllRoutes = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+//-------------------------
+//admin can : approve/reject bus  update requests
+//-------------------------
+
 
 module.exports = {
-  requestBus,        // user requests bus
+  requestBus,        // user requests to add new bus
   getMyBuses,        // ✅ NEW: get user's bus requests
-  updateBus,         // ✅ NEW: update bus for resubmission
-  getBusDetails,     // ✅ NEW: get specific bus details
+  updateBus,         // ✅ NEW: update bus for resubmission by user and insert stopage in existing bus route
+  getBusDetails,     // ✅ NEW: get specific bus details (bus number)
   getAllBusRequests, // admin gets pending requests
   approveBusRequest, // admin approves
   rejectBusRequest,  // admin rejects (now with reason)
+  searchBus,   // search buses by from/to stoppages
+  getAllBuses,  // get all buses (admin)
+  getAllRoutes  // get all unique routes (admin)
+};*/
+
+
+
+
+const mongoose = require("mongoose");
+const Bus = require("../models/busModel");
+const BusRequest = require("../models/busRequestModel");
+const BusUpdateRequest = require("../models/busUpdateRequestModel");
+
+// -------------------------
+// USER: Request to add a bus
+// -------------------------
+const requestBus = async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+    console.log("USER:", req.user);
+
+    const { busName, busNumber, busType, capacity, fare, amenities, stoppages } = req.body;
+
+    if (!req.user?.id) return res.status(401).json({ error: "Unauthorized" });
+
+    // Validate stoppages array
+    if (!Array.isArray(stoppages) || stoppages.length < 3) {
+      return res.status(400).json({ error: "At least 3 stoppages with order are required" });
+    }
+
+    // ================= Normalize bus number =================
+    const normalizeBusNumber = (number) => {
+      return number.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    };
+
+    const normalizedBusNumber = normalizeBusNumber(busNumber);
+
+    const newRequest = new BusRequest({
+      userId: req.user.id,
+      busName,
+      busNumber: normalizedBusNumber, // store normalized number for search
+      displayNumber: busNumber,       // optional: keep original input for UI
+      busType,
+      capacity,
+      fare,
+      amenities,
+      stoppages
+    });
+
+    await newRequest.save();
+    res.status(201).json(newRequest);
+
+  } catch (error) {
+    console.error("BACKEND ERROR 👉", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+// -------------------------
+// USER: Get my bus requests
+// -------------------------
+const getMyBuses = async (req, res) => {
+  try {
+    const userBuses = await BusRequest.find({ userId: req.user.id })
+      .sort({ createdAt: -1 });
+    res.json(userBuses);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// -------------------------
+// USER: Update bus request (resubmission)
+// -------------------------
+const updateBus = async (req, res) => {
+  try {
+    const { busNumber } = req.params;
+    const { busName, busType, capacity, fare, amenities, stoppages, insertStoppage } = req.body;
+
+    // Normalize bus number for consistency
+    const normalizeBusNumber = (number) => number.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const normalizedBusNumber = normalizeBusNumber(busNumber);
+
+    // Find bus by normalized number
+    const busRequest = await BusRequest.findOne({ busNumber: normalizedBusNumber, userId: req.user.id });
+    if (!busRequest) return res.status(404).json({ error: "Bus request not found or unauthorized" });
+
+    // Partial update logic
+    if (busName !== undefined) busRequest.busName = busName;
+    if (busType !== undefined) busRequest.busType = busType;
+    if (capacity !== undefined) busRequest.capacity = capacity;
+    if (fare !== undefined) busRequest.fare = fare;
+    if (amenities !== undefined) busRequest.amenities = amenities;
+
+    // Handle stoppages
+    if (stoppages) {
+      busRequest.stoppages = stoppages; // Replace entire stoppages array
+    }
+
+    // Insert a new stoppage in the middle (optional)
+    if (insertStoppage) {
+      const { order, name } = insertStoppage; // e.g., { order: 2, name: "New Stop" }
+      if (order < 1 || order > busRequest.stoppages.length + 1) {
+        return res.status(400).json({ error: "Invalid stoppage order" });
+      }
+      // Insert at correct position (order - 1 because arrays are 0-indexed)
+      busRequest.stoppages.splice(order - 1, 0, name);
+    }
+
+    // Reset approval status
+    busRequest.status = "pending";
+    busRequest.rejectionReason = "";
+
+    await busRequest.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Bus updated and resubmitted for approval",
+      bus: busRequest
+    });
+
+  } catch (err) {
+    console.error("UPDATE BUS ERROR 👉", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+// -------------------------
+// USER: Get specific bus request
+// -------------------------
+const getBusDetails = async (req, res) => {
+  try {
+    const { busNumber } = req.params;
+
+    if (!busNumber) {
+      return res.status(400).json({ error: "Bus number is required" });
+    }
+
+    const normalized = busNumber.replace(/[\s-]/g, "").toUpperCase();
+
+    const bus = await Bus.findOne({
+      normalizedBusNumber: normalized
+    });
+
+    if (!bus) {
+      return res.status(404).json({ error: "Bus not found" });
+    }
+
+    res.json({ bus });
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+
+
+
+// -------------------------
+// ADMIN: Get all pending bus requests
+// -------------------------
+const getAllBusRequests = async (req, res) => {
+  try {
+    const requests = await BusRequest.find({ status: "pending" });
+    res.status(200).json({ success: true, payload: requests });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// -------------------------
+// ADMIN: Approve bus request
+// -------------------------
+const approveBusRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "Invalid bus request ID" });
+
+    const request = await BusRequest.findById(id);
+    if (!request) return res.status(404).json({ error: "Bus request not found" });
+    if (request.status === "approved") return res.status(400).json({ error: "Bus already approved" });
+
+    const existingBus = await Bus.findOne({ busNumber: request.busNumber });
+    if (existingBus) return res.status(400).json({ error: "Bus number already exists" });
+
+    const newBus = new Bus({
+      busName: request.busName,
+      busNumber: request.busNumber,
+      busType: request.busType || "Non-AC Seater",
+      capacity: request.capacity >= 20 ? request.capacity : 40,
+      fare: request.fare >= 50 ? request.fare : 100,
+      amenities: Array.isArray(request.amenities) ? request.amenities : [],
+      stoppages: request.stoppages,
+      owner: request.userId
+    });
+
+    await newBus.save();
+    request.status = "approved";
+    await request.save();
+
+    res.status(200).json({ success: true, message: "Bus approved successfully", bus: newBus });
+
+  } catch (err) {
+    console.error("Approve Bus Error:", err);
+    res.status(500).json({ error: "Internal Server Error", details: err.message });
+  }
+};
+
+// -------------------------
+// ADMIN: Reject bus request
+// -------------------------
+const rejectBusRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rejectionReason } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "Invalid bus request ID" });
+
+    const request = await BusRequest.findById(id);
+    if (!request) return res.status(404).json({ error: "Bus request not found" });
+    if (request.status === "rejected") return res.status(400).json({ error: "Already rejected" });
+    if (request.status === "approved") return res.status(400).json({ error: "Already approved, cannot reject" });
+
+    request.status = "rejected";
+    request.rejectionReason = rejectionReason || "No reason provided";
+    await request.save();
+
+    res.status(200).json({ success: true, message: "Bus request rejected successfully", request });
+
+  } catch (err) {
+    console.error("Reject Bus Error:", err);
+    res.status(500).json({ error: "Internal Server Error", details: err.message });
+  }
+};
+
+// -------------------------
+// SEARCH BUS (From → To using order)
+// -------------------------
+const searchBus = async (req, res) => {
+  try {
+    let { from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ success: false, message: "Both 'from' and 'to' are required" });
+
+    from = from.trim().toLowerCase();
+    to = to.trim().toLowerCase();
+
+    const buses = await Bus.find({}).lean();
+    const matchedBuses = [];
+
+    for (const bus of buses) {
+      if (!bus.stoppages || bus.stoppages.length < 2) continue;
+
+      // normalize stoppage names
+      const fromStop = bus.stoppages.find(s => s.name.toLowerCase() === from);
+      const toStop = bus.stoppages.find(s => s.name.toLowerCase() === to);
+
+      if (fromStop && toStop && fromStop.order < toStop.order) {
+        matchedBuses.push({
+          _id: bus._id,
+          busName: bus.busName,
+          busNumber: bus.busNumber,
+          busType: bus.busType,
+          fare: bus.fare,
+          capacity: bus.capacity,
+          amenities: bus.amenities,
+          fromStop,
+          toStop
+        });
+      }
+    }
+
+    res.json({ success: true, count: matchedBuses.length, buses: matchedBuses });
+
+  } catch (error) {
+    console.error("Search Bus Error:", error);
+    res.status(500).json({ success: false, error: "Internal Server Error", details: error.message });
+  }
+};
+
+// -------------------------
+// GET ALL BUSES (Admin)
+// -------------------------
+const getAllBuses = async (req, res) => {
+  try {
+    const buses = await Bus.find();
+    res.json(buses);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// -------------------------
+// GET ALL UNIQUE ROUTES
+// -------------------------
+const getAllRoutes = async (req, res) => {
+  try {
+    const buses = await Bus.find();
+    const uniqueRoutes = new Set();
+    buses.forEach(bus => {
+      const route = bus.stoppages.map(stop => stop.name.toLowerCase()).join(" > ");
+      uniqueRoutes.add(route);
+    });
+    res.json([...uniqueRoutes]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+module.exports = {
+  requestBus,
+  getMyBuses,
+  updateBus,
+  getBusDetails,
+  getAllBusRequests,
+  approveBusRequest,
+  rejectBusRequest,
   searchBus,
   getAllBuses,
   getAllRoutes

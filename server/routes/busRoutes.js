@@ -11,6 +11,7 @@ const {
   updateBus,
   getBusDetails,
 } = require("../controllers/busController");
+const {getAllBusUpdateRequests, approveBusUpdateRequest, rejectBusUpdateRequest} = require("../controllers/adminBusRequestController");
 
 const verifyToken = require("../middlewares/verifyToken");
 const verifyAdminToken = require("../middlewares/verifyAdminToken");
@@ -37,7 +38,16 @@ router.get("/", verifyAdminToken, getAllBuses);
 // -------------------------
 // DYNAMIC ROUTES (KEEP LAST)
 // -------------------------
-router.put("/:busId", verifyToken, updateBus);
-router.get("/:busId", verifyToken, getBusDetails);
+router.put("/:busNumber", verifyToken, updateBus);
+router.get("/:busNumber", verifyToken, getBusDetails);
+
+//-------------------------
+//admin can : approve/reject bus  update requests
+//-------------------------
+router.get("/updates", verifyAdminToken, getAllBusUpdateRequests);
+router.put("/updateApprove/:id", verifyAdminToken, approveBusUpdateRequest);
+router.put("/updateReject/:id", verifyAdminToken, rejectBusUpdateRequest);
+
 
 module.exports = router;
+

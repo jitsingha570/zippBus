@@ -390,13 +390,13 @@ const AccountPage = () => {
                   </button>
                   
                   <button
-                    onClick={() => navigate('/search')}
+                    onClick={() => navigate('/searchBusByNumber')}
                     className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 font-medium flex items-center justify-center space-x-2"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <span>Search Buses</span>
+                    <span>Search & Update Bus</span>
                   </button>
                   
                   <button

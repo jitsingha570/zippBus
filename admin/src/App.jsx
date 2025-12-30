@@ -11,6 +11,7 @@ import AdminRegister from "./pages/AdminRegister.jsx";
 import AdminLogin from "./pages/AdminLogin.jsx";
 import AdminVerifyOtp from "./pages/AdminVerifyOtp.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminUpdateRequestsPage from "./pages/AdminBusUpdateRequests.jsx";
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("adminToken") || "");
@@ -81,6 +82,15 @@ function App() {
           element={
             <ProtectedRoute token={token}>
               <AdminRequestsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/requestUpdate"
+          element={
+            <ProtectedRoute token={token}>
+              <AdminUpdateRequestsPage />
             </ProtectedRoute>
           }
         />

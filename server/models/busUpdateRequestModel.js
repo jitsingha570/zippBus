@@ -4,8 +4,8 @@ const mongoose = require("mongoose");
 // Stoppage Schema
 // ======================
 const stoppageSchema = new mongoose.Schema({
-  name: { 
-    type: String, 
+  name: {
+    type: String,
     required: true,
     trim: true
   },
@@ -13,27 +13,36 @@ const stoppageSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  goingTime: { 
-    type: String, 
-    required: true 
+  goingTime: {
+    type: String,
+    required: true
   },
-  returnTime: { 
-    type: String, 
-    required: true 
+  returnTime: {
+    type: String,
+    required: true
   }
 });
 
 // ======================
-// Bus Request Schema
+// Bus Update Request Schema
 // ======================
-const busRequestSchema = new mongoose.Schema(
+const busUpdateRequestSchema = new mongoose.Schema(
   {
-    userId: {
+    // 🔗 Reference to original bus
+    busId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Bus",
+      required: true
+    },
+
+    // 👤 Who requested the update
+    owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true
     },
 
+    // 🚌 Updated fields
     busName: {
       type: String,
       required: true
@@ -97,6 +106,7 @@ const busRequestSchema = new mongoose.Schema(
       }
     },
 
+    // 🛂 Approval workflow
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
@@ -111,7 +121,10 @@ const busRequestSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Optional index for faster search by stop name
-busRequestSchema.index({ "stoppages.name": 1 });
+// Optional index for faster search by stoppage name
+busUpdateRequestSchema.index({ "stoppages.name": 1 });
 
-module.exports = mongoose.model("BusRequest", busRequestSchema);
+module.exports = mongoose.model(
+  "BusUpdateRequest",
+  busUpdateRequestSchema
+);

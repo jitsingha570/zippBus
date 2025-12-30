@@ -441,25 +441,61 @@ const requestBus = async (req, res) => {
 
     const { busName, busNumber, busType, capacity, fare, amenities, stoppages } = req.body;
 
-    if (!req.user?.id) return res.status(401).json({ error: "Unauthorized" });
-
-    // Validate stoppages array
-    if (!Array.isArray(stoppages) || stoppages.length < 3) {
-      return res.status(400).json({ error: "At least 3 stoppages with order are required" });
+    if (!req.user?.id) {
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // ================= Normalize bus number =================
-    const normalizeBusNumber = (number) => {
-      return number.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    };
+    // ===============================
+    // Validate stoppages
+    // ===============================
+    if (!Array.isArray(stoppages) || stoppages.length < 3) {
+      return res.status(400).json({
+        error: "At least 3 stoppages with order are required"
+      });
+    }
+
+    // ===============================
+    // Normalize bus number
+    // ===============================
+    const normalizeBusNumber = (number) =>
+      number.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
 
     const normalizedBusNumber = normalizeBusNumber(busNumber);
 
+    // ===============================
+    // ❌ CHECK DUPLICATE (IMPORTANT)
+    // ===============================
+
+    // 1️⃣ Check in BusRequest (pending / rejected / approved)
+    const existingRequest = await BusRequest.findOne({
+      busNumber: normalizedBusNumber
+    });
+
+    if (existingRequest) {
+      return res.status(409).json({
+        error: "Bus with this number is already requested"
+      });
+    }
+
+    // 2️⃣ OPTIONAL: Check in main Bus collection (already approved buses)
+    const existingBus = await Bus.findOne({
+      busNumber: normalizedBusNumber
+    });
+
+    if (existingBus) {
+      return res.status(409).json({
+        error: "Bus with this number already exists"
+      });
+    }
+
+    // ===============================
+    // Create new request
+    // ===============================
     const newRequest = new BusRequest({
       userId: req.user.id,
       busName,
-      busNumber: normalizedBusNumber, // store normalized number for search
-      displayNumber: busNumber,       // optional: keep original input for UI
+      busNumber: normalizedBusNumber, // normalized for uniqueness
+      displayNumber: busNumber,       // original for UI
       busType,
       capacity,
       fare,
@@ -468,13 +504,19 @@ const requestBus = async (req, res) => {
     });
 
     await newRequest.save();
-    res.status(201).json(newRequest);
+
+    res.status(201).json({
+      success: true,
+      message: "Bus request submitted successfully",
+      data: newRequest
+    });
 
   } catch (error) {
     console.error("BACKEND ERROR 👉", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 // -------------------------

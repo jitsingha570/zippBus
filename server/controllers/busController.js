@@ -661,43 +661,131 @@ const rejectBusRequest = async (req, res) => {
 const searchBus = async (req, res) => {
   try {
     let { from, to } = req.query;
-    if (!from || !to) return res.status(400).json({ success: false, message: "Both 'from' and 'to' are required" });
+
+    // ===============================
+    // 1. Validation
+    // ===============================
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        message: "Both 'from' and 'to' are required"
+      });
+    }
 
     from = from.trim().toLowerCase();
     to = to.trim().toLowerCase();
 
+    // ===============================
+    // 2. Fetch all buses
+    // ===============================
     const buses = await Bus.find({}).lean();
     const matchedBuses = [];
 
+    // ===============================
+    // 3. Process each bus
+    // ===============================
     for (const bus of buses) {
       if (!bus.stoppages || bus.stoppages.length < 2) continue;
 
-      // normalize stoppage names
-      const fromStop = bus.stoppages.find(s => s.name.toLowerCase() === from);
-      const toStop = bus.stoppages.find(s => s.name.toLowerCase() === to);
+      const fromStop = bus.stoppages.find(
+        s => s.name.toLowerCase() === from
+      );
 
-      if (fromStop && toStop && fromStop.order < toStop.order) {
-        matchedBuses.push({
-          _id: bus._id,
-          busName: bus.busName,
-          busNumber: bus.busNumber,
-          busType: bus.busType,
-          fare: bus.fare,
-          capacity: bus.capacity,
-          amenities: bus.amenities,
-          fromStop,
-          toStop
-        });
+      const toStop = bus.stoppages.find(
+        s => s.name.toLowerCase() === to
+      );
+
+      if (!fromStop || !toStop) continue;
+
+      let routeStoppages = [];
+      let direction = "";
+
+      // ===============================
+      // 4. NORMAL DIRECTION (GOING)
+      // ===============================
+      if (fromStop.order < toStop.order) {
+        direction = "GOING";
+
+        routeStoppages = bus.stoppages
+          .filter(s =>
+            s.order >= fromStop.order &&
+            s.order <= toStop.order
+          )
+          .sort((a, b) => a.order - b.order);
       }
+
+      // ===============================
+      // 5. REVERSE DIRECTION (RETURN)
+      // ===============================
+      else if (fromStop.order > toStop.order) {
+        direction = "RETURN";
+
+        routeStoppages = bus.stoppages
+          .filter(s =>
+            s.order <= fromStop.order &&
+            s.order >= toStop.order
+          )
+          .sort((a, b) => b.order - a.order);
+      }
+
+      // If same stop
+      else {
+        continue;
+      }
+
+      // ===============================
+      // 6. Map stoppages (both times)
+      // ===============================
+      const formattedStoppages = routeStoppages.map(s => ({
+        name: s.name,
+        order: s.order,
+        goingTime: s.goingTime,
+        returnTime: s.returnTime
+      }));
+
+      // ===============================
+      // 7. Push matched bus
+      // ===============================
+      matchedBuses.push({
+        _id: bus._id,
+        busName: bus.busName,
+        busNumber: bus.busNumber,
+        busType: bus.busType,
+        fare: bus.fare,
+        capacity: bus.capacity,
+        amenities: bus.amenities,
+        direction, // 👈 GOING / RETURN
+        route: {
+          from,
+          to,
+          stoppages: formattedStoppages
+        }
+      });
     }
 
-    res.json({ success: true, count: matchedBuses.length, buses: matchedBuses });
+    // ===============================
+    // 8. Response
+    // ===============================
+    res.status(200).json({
+      success: true,
+      count: matchedBuses.length,
+      buses: matchedBuses
+    });
 
   } catch (error) {
     console.error("Search Bus Error:", error);
-    res.status(500).json({ success: false, error: "Internal Server Error", details: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message
+    });
   }
 };
+
+
+
+
+
 
 // -------------------------
 // GET ALL BUSES (Admin)

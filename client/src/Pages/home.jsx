@@ -50,7 +50,7 @@ function Home() {
           
           {/* Subtitle */}
           <p className="text-xl md:text-2xl text-gray-600 font-light max-w-3xl mx-auto mb-12 leading-relaxed">
-            Experience seamless bus booking with our modern platform. 
+            Experience seamless bus Searching with our modern platform. 
             <br className="hidden md:block" />
             Fast, reliable, and designed for your comfort.
           </p>
@@ -58,7 +58,7 @@ function Home() {
           {/* Feature Pills */}
           <div className="flex flex-wrap justify-center gap-4 mb-16">
             <span className="px-6 py-3 bg-white rounded-full shadow-lg text-purple-700 font-medium border border-purple-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
-              ✨ Instant Booking
+              ✨ Instant Searching
             </span>
             <span className="px-6 py-3 bg-purple-100 rounded-full shadow-lg text-purple-800 font-medium hover:shadow-xl transition-all duration-300 hover:scale-105">
               🚌 Premium Buses

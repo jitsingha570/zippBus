@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+const API_URL = import.meta.env.VITE_API_URL;
 
 function AddNewBus() {
   const [busName, setBusName] = useState('');
@@ -120,7 +121,7 @@ function AddNewBus() {
       }
 
       const res = await axios.post(
-        "http://localhost:5000/api/buses/request",
+        `${API_URL}/api/buses/request`,
         payload,
         {
           headers: {

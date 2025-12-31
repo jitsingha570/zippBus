@@ -250,7 +250,7 @@ function SearchBus() {
                       <div className="flex flex-col md:items-end gap-3">
                         <div className="text-center md:text-right">
                           <div className="text-sm text-gray-600">Starting from</div>
-                          <div className="text-3xl font-bold text-purple-700">₹{bus.fare}</div>
+                          {/*<div className="text-3xl font-bold text-purple-700">₹{bus.fare}</div>*/}
                         </div>
                         <button 
                           onClick={() => toggleStoppageDetails(bus._id)}
@@ -356,7 +356,7 @@ function SearchBus() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                           <div className="bg-white rounded-lg p-4 text-center shadow-sm">
                             <div className="text-xs text-gray-600 mb-1">Base Fare</div>
-                            <div className="text-xl font-bold text-purple-700">₹{bus.fare || 'N/A'}</div>
+                            {/*<div className="text-xl font-bold text-purple-700">₹{bus.fare || 'N/A'}</div>*/}
                           </div>
                           <div className="bg-white rounded-lg p-4 text-center shadow-sm">
                             <div className="text-xs text-gray-600 mb-1">Total Stops</div>

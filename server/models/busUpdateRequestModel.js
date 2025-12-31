@@ -9,7 +9,7 @@ const stoppageSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  order: {                // New field added
+  order: {
     type: Number,
     required: true
   },
@@ -51,6 +51,19 @@ const busUpdateRequestSchema = new mongoose.Schema(
     busNumber: {
       type: String,
       required: true
+    },
+
+    // ✅ OPTIONAL CONTACT NUMBERS
+    contactNumber1: {
+      type: String,
+      trim: true,
+      match: [/^(\+91)?[6-9]\d{9}$/, "Invalid contact number 1"]
+    },
+
+    contactNumber2: {
+      type: String,
+      trim: true,
+      match: [/^(\+91)?[6-9]\d{9}$/, "Invalid contact number 2"]
     },
 
     busType: {
@@ -121,7 +134,7 @@ const busUpdateRequestSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Optional index for faster search by stoppage name
+// Index for faster search by stoppage name
 busUpdateRequestSchema.index({ "stoppages.name": 1 });
 
 module.exports = mongoose.model(

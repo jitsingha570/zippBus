@@ -306,6 +306,52 @@ function SearchBus() {
                           </div>
                         </div>
 
+                        {/* Contact Information */}
+                        {(bus.contactNumber1 || bus.contactNumber2) && (
+                          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h5 className="font-semibold text-gray-800 mb-3 flex items-center">
+                              <svg className="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              </svg>
+                              Contact Information
+                            </h5>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {bus.contactNumber1 && (
+                                <a 
+                                  href={`tel:${bus.contactNumber1}`}
+                                  className="flex items-center bg-white p-3 rounded-lg border border-blue-200 hover:border-blue-400 hover:shadow-md transition-all duration-300 group"
+                                >
+                                  <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 group-hover:bg-blue-200 transition-colors">
+                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-gray-500">Primary Contact</div>
+                                    <div className="text-sm font-semibold text-gray-800">{bus.contactNumber1}</div>
+                                  </div>
+                                </a>
+                              )}
+                              {bus.contactNumber2 && (
+                                <a 
+                                  href={`tel:${bus.contactNumber2}`}
+                                  className="flex items-center bg-white p-3 rounded-lg border border-blue-200 hover:border-blue-400 hover:shadow-md transition-all duration-300 group"
+                                >
+                                  <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3 group-hover:bg-blue-200 transition-colors">
+                                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                  </div>
+                                  <div>
+                                    <div className="text-xs text-gray-500">Secondary Contact</div>
+                                    <div className="text-sm font-semibold text-gray-800">{bus.contactNumber2}</div>
+                                  </div>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Detailed Stats */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                           <div className="bg-white rounded-lg p-4 text-center shadow-sm">

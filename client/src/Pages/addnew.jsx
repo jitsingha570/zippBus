@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-const API_URL = import.meta.env.VITE_API_URL;
+
 function AddNewBus() {
   const [busName, setBusName] = useState('');
   const [busNumber, setBusNumber] = useState('');
+  const [contactNumber1, setContactNumber1] = useState('');
+  const [contactNumber2, setContactNumber2] = useState('');
   const [busType, setBusType] = useState('AC Seater');
   const [capacity, setCapacity] = useState('');
   const [fare, setFare] = useState('');
   const [amenities, setAmenities] = useState([]);
   const [stoppages, setStoppages] = useState([
-    { name: '', goingTime: '', returnTime: '' },
-    { name: '', goingTime: '', returnTime: '' },
-    { name: '', goingTime: '', returnTime: '' },
+    { name: '', goingTime: '', returnTime: '', order: 1 },
+    { name: '', goingTime: '', returnTime: '', order: 2 },
+    { name: '', goingTime: '', returnTime: '', order: 3 },
   ]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -22,37 +24,33 @@ function AddNewBus() {
   const busTypes = ['AC Seater', 'Non-AC Seater', 'Sleeper AC', 'Sleeper Non-AC', 'Volvo', 'Luxury'];
   const availableAmenities = ['WiFi', 'Charging Points', 'Entertainment', 'Blankets', 'Snacks', 'Water Bottle', 'GPS Tracking', 'CCTV'];
 
-    const handleStoppageChange = (index, field, value) => {
+  const handleStoppageChange = (index, field, value) => {
     const newStoppages = [...stoppages];
-    newStoppages[index][field] = field === 'name' ? value.toLowerCase() : value;
-    
-    // Update orders automatically
-    const updatedStoppages = newStoppages.map((stop, i) => ({ ...stop, order: i + 1 }));
-    setStoppages(updatedStoppages);
+    if (field === 'name') {
+      newStoppages[index][field] = value.toLowerCase();
+    } else {
+      newStoppages[index][field] = value;
+    }
+    setStoppages(newStoppages);
   };
 
   const addStoppage = () => {
     if (stoppages.length < 10) {
-      const newStops = [...stoppages, { name: '', goingTime: '', returnTime: '', order: stoppages.length + 1 }];
-      setStoppages(newStops);
+      setStoppages([...stoppages, { name: '', goingTime: '', returnTime: '' }]);
     } else {
       setMessage("You can add a maximum of 10 stoppages.");
     }
   };
 
-
   const removeStoppage = (index) => {
-  if (stoppages.length > 3) {
-    const newStoppages = [...stoppages];
-    newStoppages.splice(index, 1);
-    // Recalculate orders
-    const updatedStoppages = newStoppages.map((stop, i) => ({ ...stop, order: i + 1 }));
-    setStoppages(updatedStoppages);
-  } else {
-    setMessage("Minimum 3 stoppages are required.");
-  }
-};
-
+    if (stoppages.length > 3) {
+      const newStoppages = [...stoppages];
+      newStoppages.splice(index, 1);
+      setStoppages(newStoppages);
+    } else {
+      setMessage("Minimum 3 stoppages are required.");
+    }
+  };
 
   const handleAmenityToggle = (amenity) => {
     setAmenities(prev => 
@@ -103,6 +101,8 @@ function AddNewBus() {
     const payload = {
       busName,
       busNumber,
+      contactNumber1: contactNumber1.trim() || undefined,
+      contactNumber2: contactNumber2.trim() || undefined,
       busType,
       capacity: parseInt(capacity),
       fare: parseFloat(fare),
@@ -120,7 +120,7 @@ function AddNewBus() {
       }
 
       const res = await axios.post(
-        `${API_URL}/api/buses/request`,
+        "http://localhost:5000/api/buses/request",
         payload,
         {
           headers: {
@@ -135,14 +135,16 @@ function AddNewBus() {
       setTimeout(() => {
         setBusName('');
         setBusNumber('');
+        setContactNumber1('');
+        setContactNumber2('');
         setBusType('AC Seater');
         setCapacity('');
         setFare('');
         setAmenities([]);
         setStoppages([
-          { name: '', goingTime: '', returnTime: '' },
-          { name: '', goingTime: '', returnTime: '' },
-          { name: '', goingTime: '', returnTime: '' },
+          { name: '', goingTime: '', returnTime: '', order: 1 },
+          { name: '', goingTime: '', returnTime: '', order: 2 },
+          { name: '', goingTime: '', returnTime: '', order: 3 },
         ]);
         setCurrentStep(1);
         navigate('/account');
@@ -192,6 +194,36 @@ function AddNewBus() {
             className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300"
             required
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-purple-700 mb-2">
+            Contact Number 1
+          </label>
+          <input
+            type="tel"
+            value={contactNumber1}
+            onChange={(e) => setContactNumber1(e.target.value)}
+            placeholder="e.g., 9876543210"
+            pattern="^(\+91)?[6-9]\d{9}$"
+            className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300"
+          />
+          <p className="text-xs text-gray-500 mt-1">Optional: 10-digit Indian mobile number</p>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-purple-700 mb-2">
+            Contact Number 2
+          </label>
+          <input
+            type="tel"
+            value={contactNumber2}
+            onChange={(e) => setContactNumber2(e.target.value)}
+            placeholder="e.g., 9123456789"
+            pattern="^(\+91)?[6-9]\d{9}$"
+            className="w-full px-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300"
+          />
+          <p className="text-xs text-gray-500 mt-1">Optional: Alternative contact number</p>
         </div>
 
         <div>

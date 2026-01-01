@@ -21,11 +21,15 @@ const busRoutes = require("./routes/busRoutes");
 const userAuthRoutes = require("./routes/authRoutes");
 const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const reportRoutes = require("./routes/reportRoutes");
+const countsRoutes = require("./routes/countsRoutes");
 
-app.use("/api/buses", busRoutes);
+
+
+app.use("/api/buses", busRoutes);  // 🚌 Bus-related endpoints
 app.use("/api/users", userAuthRoutes);   // 👤 User login/register
 app.use("/api/admins", adminAuthRoutes); // 🛠️ Admin login/register
-app.use("/api/reports", reportRoutes);
+app.use("/api/reports", reportRoutes);  // 📝 Report endpoints
+app.use("/api/counts", countsRoutes);  // 📊 Counts endpoints
 
 // ✅ MongoDB Connection
 const mongoURI = process.env.MONGO_URI;

@@ -2,85 +2,88 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import SearchBus from "../components/SearchBus";
-const API_URL = import.meta.env.VITE_API_URL;
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function Dashboard() {
+  const navigate = useNavigate();
+
+  // ========================
+  // STATES
+  // ========================
   const [stats, setStats] = useState({
     totalBuses: 0,
     totalRoutes: 0,
     totalUsers: 0,
     pendingRequests: 0,
-    approvedBuses: 0,
-    rejectedRequests: 0
+    pendingBusUpdates: 0
   });
-  const [recentBuses, setRecentBuses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' or 'search'
-  const navigate = useNavigate();
 
+  const [loading, setLoading] = useState(true);
+  const [recentBuses, setRecentBuses] = useState([]);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // ========================
+  // FETCH DASHBOARD COUNTS
+  // ========================
   useEffect(() => {
-    fetchDashboardData();
+    const fetchStats = async () => {
+      try {
+        const adminToken = localStorage.getItem("adminToken");
+
+        const [
+          busesRes,
+          usersRes,
+          routesRes,
+          pendingReqRes,
+          pendingBusUpdateRes
+        ] = await Promise.all([
+          axios.get(`${API_URL}/api/counts/buses`),
+          axios.get(`${API_URL}/api/counts/users`),
+          axios.get(`${API_URL}/api/counts/routes`),
+          axios.get(`${API_URL}/api/counts/pending-buses`, {
+            headers: { Authorization: `Bearer ${adminToken}` }
+          }),
+          axios.get(`${API_URL}/api/counts/pending-bus-updates`, {
+            headers: { Authorization: `Bearer ${adminToken}` }
+          })
+        ]);
+
+        setStats({
+          totalBuses: busesRes.data.totalBuses ?? 0,
+          totalUsers: usersRes.data.totalUsers ?? 0,
+          totalRoutes: routesRes.data.totalRoutes ?? 0,
+          pendingRequests: pendingReqRes.data.pendingBuses ?? 0,
+          pendingBusUpdates: pendingBusUpdateRes.data.pendingBusUpdates ?? 0
+        });
+
+      } catch (error) {
+        console.error("❌ Error fetching dashboard stats:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch all buses
-      const busesRes = await axios.get(`${API_URL}/api/buses`);
-      const buses = busesRes.data;
-      
-      // Calculate routes
-      const routesSet = new Set();
-      buses.forEach(bus => {
-        if (bus.stoppages && bus.stoppages.length > 0) {
-          const route = bus.stoppages.map(stop => stop.name.toLowerCase()).join(" > ");
-          routesSet.add(route);
-        }
-      });
-
-      // Fetch platform stats
-      let platformStats = { totalUsers: 0, totalBuses: 0, totalRoutes: 0 };
+  // ========================
+  // FETCH RECENT BUSES (OPTIONAL)
+  // ========================
+  useEffect(() => {
+    const fetchRecentBuses = async () => {
       try {
-        const statsRes = await axios.get(`${API_URL}/api/stats`);
-        platformStats = statsRes.data;
-      } catch (err) {
-        console.log("Platform stats not available");
+        const res = await axios.get(`${API_URL}/api/buses?limit=5`);
+        setRecentBuses(res.data || []);
+      } catch (error) {
+        console.error("Error fetching recent buses:", error);
       }
+    };
 
-      // Fetch pending bus requests (if user is admin)
-      let pendingCount = 0;
-      try {
-        const token = localStorage.getItem("token");
-        if (token) {
-          const requestsRes = await axios.get(`${API_URL}/api/buses/requests`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          pendingCount = requestsRes.data.filter(req => req.status === 'pending').length;
-        }
-      } catch (err) {
-        console.log("Bus requests not available");
-      }
+    fetchRecentBuses();
+  }, []);
 
-      setStats({
-        totalBuses: buses.length,
-        totalRoutes: routesSet.size,
-        totalUsers: platformStats.totalUsers || 0,
-        pendingRequests: pendingCount,
-        approvedBuses: buses.filter(bus => bus.status === 'approved').length,
-        rejectedRequests: 0
-      });
-
-      // Get recent buses (last 5)
-      setRecentBuses(buses.slice(-5).reverse());
-
-    } catch (error) {
-      console.error("Error loading dashboard stats:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 flex items-center justify-center">

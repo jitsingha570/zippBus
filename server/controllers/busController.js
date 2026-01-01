@@ -430,7 +430,7 @@ const mongoose = require("mongoose");
 const Bus = require("../models/busModel");
 const BusRequest = require("../models/busRequestModel");
 const BusUpdateRequest = require("../models/busUpdateRequestModel");
-
+const SearchStats = require("../models/SearchStats");
 // -------------------------
 // USER: Request to add a bus
 // -------------------------
@@ -717,6 +717,19 @@ const searchBus = async (req, res) => {
     from = from.trim().toLowerCase();
     to = to.trim().toLowerCase();
 
+    // ===============================
+    // 2. 🔥 INCREMENT SEARCH COUNT
+    // ===============================
+    await SearchStats.findOneAndUpdate(
+      {}, // single global document
+      {
+        $inc: {
+          totalSearches: 1,
+          [`routeSearches.${from}_${to}`]: 1
+        }
+      },
+      { upsert: true, new: true }
+    );
     // ===============================
     // 2. Fetch all buses
     // ===============================

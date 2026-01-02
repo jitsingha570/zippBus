@@ -8,7 +8,8 @@ import LoginPage from "./Pages/LoginPage";
 import ProfilePage from "./Pages/AccountPage";
 import AccountPage from "./Pages/AccountPage";
 import SearchBus from "./Pages/SearchBus";
-import SearchBusByNumber from "./Pages/BusSearchByNumber"; 
+import SearchBusByName from "./Pages/SearchBusByName";
+
 import UpdateBus from "./Pages/UpdateBus";
 
 function App() {
@@ -21,10 +22,11 @@ function App() {
 
         <Route path="/addnew" element={<AddNewBus />} />
         <Route path="/search" element={<SearchBus />} />
+          <Route path="/searchBusByName" element={<SearchBusByName />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/account" element={<AccountPage/>} />
-        <Route path="/searchBusByNumber" element={<SearchBusByNumber />} />
+       
         <Route path="/update" element={<UpdateBus/>} />
 
       </Routes>

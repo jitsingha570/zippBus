@@ -869,6 +869,61 @@ const getAllRoutes = async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+
+
+
+};
+
+
+// -------------------------
+// SEARCH BUS BY NAME OR NUMBER
+// -------------------------
+const searchBusByNameOrNumber = async (req, res) => {
+  try {
+    let { q } = req.query;
+
+    if (!q) {
+      return res.status(400).json({
+        success: false,
+        message: "Search query is required",
+      });
+    }
+
+    // Normalize search query
+    const normalizedQuery = q
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, ""); // remove space, -, etc
+
+    const buses = await Bus.find({
+      $or: [
+        // Search by bus name (normal text search)
+        { busName: { $regex: q, $options: "i" } },
+
+        // Search by raw bus number
+        { busNumber: { $regex: q, $options: "i" } },
+
+        // Search by normalized bus number
+        {
+          busNumber: {
+            $regex: normalizedQuery,
+            $options: "i",
+          },
+        },
+      ],
+    });
+
+    res.json({
+      success: true,
+      count: buses.length,
+      buses,
+    });
+  } catch (error) {
+    console.error("Search error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
 };
 
 module.exports = {
@@ -881,5 +936,6 @@ module.exports = {
   rejectBusRequest,
   searchBus,
   getAllBuses,
-  getAllRoutes
+  getAllRoutes,
+  searchBusByNameOrNumber
 };

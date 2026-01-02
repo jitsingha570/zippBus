@@ -10,6 +10,7 @@ const {
   getMyBuses,
   updateBus,
   getBusDetails,
+  searchBusByNameOrNumber
 } = require("../controllers/busController");
 const {getAllBusUpdateRequests, approveBusUpdateRequest, rejectBusUpdateRequest} = require("../controllers/adminBusRequestController");
 
@@ -23,6 +24,8 @@ const router = express.Router();
 // -------------------------
 router.post("/request", verifyToken, requestBus);
 router.get("/search", searchBus);
+router.get("/search-by-name-or-number", searchBusByNameOrNumber);
+
 router.get("/my-buses", verifyToken, getMyBuses);
 
 // -------------------------

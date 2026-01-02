@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import SearchBus from './SearchBus';
+import SearchBusByName from './SearchBusByName';
 import PopularRoutes from './PopularRoutes';
 import PopularBuses from './PopularBuses';
 
@@ -138,6 +139,15 @@ useEffect(() => {
         }`}>
           <div className="bg-white rounded-3xl shadow-2xl border border-purple-100 p-8 md:p-12 backdrop-blur-sm hover:shadow-purple-200/50 transition-all duration-500">
             <SearchBus />
+          </div>
+        </div>
+       
+         {/*search bus by name or number  */}
+         <div className={`w-full max-w-6xl z-10 transform transition-all duration-1000 delay-300 ${
+          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
+        }`}>
+          <div className="bg-white rounded-3xl shadow-2xl border border-purple-100 p-8 md:p-12 backdrop-blur-sm hover:shadow-purple-200/50 transition-all duration-500">
+            <SearchBusByName />
           </div>
         </div>
 

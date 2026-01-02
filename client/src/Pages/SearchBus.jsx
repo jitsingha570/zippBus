@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
 
+import { getDepartureTime } from "../utils/getDepartureTime";
+
+
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function SearchBus() {
@@ -14,6 +18,7 @@ function SearchBus() {
   const handleSearch = async () => {
     const fromQuery = from.trim().toLowerCase();
     const toQuery = to.trim().toLowerCase();
+ 
 
     if (!fromQuery || !toQuery) {
       setError("Please enter both From and To locations");
@@ -55,7 +60,7 @@ function SearchBus() {
     setFrom(to);
     setTo(temp);
   };
-
+     
   const clearSearch = () => {
     setFrom("");
     setTo("");
@@ -67,6 +72,7 @@ function SearchBus() {
   const toggleStoppageDetails = (busId) => {
     setExpandedBusId(expandedBusId === busId ? null : busId);
   };
+
 
   return (
     <div className="w-full space-y-6">
@@ -206,13 +212,17 @@ function SearchBus() {
               const routeFrom = bus.route?.from || 'N/A';
               const routeTo = bus.route?.to || 'N/A';
               const isExpanded = expandedBusId === bus._id;
-              
+
+              const departureInfo = getDepartureTime(stoppages, routeFrom, routeTo);
+
               return (
                 <div key={bus._id || index} className="bg-white rounded-xl shadow-lg border border-purple-100 hover:shadow-xl transition-all duration-300 overflow-hidden">
                   {/* Compact Bus Card */}
                   <div className="p-6">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                       {/* Bus Info */}
+               
+
                       <div className="flex-1">
                         <div className="flex items-start gap-4">
                           <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center text-white font-bold text-lg">
@@ -242,13 +252,23 @@ function SearchBus() {
                               <span className="font-medium text-purple-700 capitalize">{routeTo}</span>
                               <span className="ml-3 text-gray-500">({stoppages.length} stops)</span>
                             </div>
+                                   {/* ✅ Departure Time */}
+                               {departureInfo && (
+                                <div className="mt-1 text-sm font-semibold text-green-600">
+                                  🕒 Departs from {routeFrom}: {departureInfo.time}
+                                </div>
+                              )}
+
                           </div>
+                          
                         </div>
                       </div>
 
                       {/* Fare and Actions */}
                       <div className="flex flex-col md:items-end gap-3">
                         <div className="text-center md:text-right">
+
+                          
                           <div className="text-sm text-gray-600">Starting from</div>
                           {/*<div className="text-3xl font-bold text-purple-700">₹{bus.fare}</div>*/}
                         </div>
@@ -358,6 +378,7 @@ function SearchBus() {
                             <div className="text-xs text-gray-600 mb-1">Base Fare</div>
                             {/*<div className="text-xl font-bold text-purple-700">₹{bus.fare || 'N/A'}</div>*/}
                           </div>
+                          
                           <div className="bg-white rounded-lg p-4 text-center shadow-sm">
                             <div className="text-xs text-gray-600 mb-1">Total Stops</div>
                             <div className="text-xl font-bold text-purple-700">{stoppages.length || 0}</div>

@@ -17,21 +17,24 @@ function SearchBus() {
   const [loading, setLoading] = useState(false);
   const [expandedBusId, setExpandedBusId] = useState(null);
 
-  const handleSearch = async () => {
-    
-    triggerPropellerAd();
-     
-    const fromQuery = from.trim().toLowerCase();
-    const toQuery = to.trim().toLowerCase();
- const navigate = useNavigate();
-
-
+   const navigate = useNavigate();
+   
 // Trigger Propeller OnClick ad
 const triggerPropellerAd = () => {
   if (window.PropellerAds && typeof window.PropellerAds.ShowAd === "function") {
     window.PropellerAds.ShowAd();
   }
 };
+
+  const handleSearch = async () => {
+    
+    triggerPropellerAd();
+     
+    const fromQuery = from.trim().toLowerCase();
+    const toQuery = to.trim().toLowerCase();
+
+
+
 
 
     if (!fromQuery || !toQuery) {

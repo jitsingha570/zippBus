@@ -8,7 +8,23 @@
     <meta name="monetag" content="20db6b5ba52c2a2cd6415a946d2451f7">
      
 
-    <script>(function(s){s.dataset.zone='10412320',s.src='https://al5sm.com/tag.min.js'})([document.documentElement, document.body].filter(Boolean).pop().appendChild(document.createElement('script')))</script>
+   <script>
+  // 1️⃣ Create the script element but do NOT auto-fire the ad
+  (function() {
+    const s = document.createElement('script');
+    s.src = 'https://al5sm.com/tag.min.js';
+    s.dataset.zone = '10412320'; // your OnClick Zone ID
+    s.async = true;
+    document.head.appendChild(s);
+
+    // 2️⃣ Wait until script loads to expose click function
+    s.onload = function() {
+      console.log('PropellerAds script loaded, ready for OnClick popunder.');
+      // The library will expose window.PropellerAdsOnClick automatically
+    };
+  })();
+</script>
+
   </head>
      
   <body>

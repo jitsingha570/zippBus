@@ -18,9 +18,20 @@ function SearchBus() {
   const [expandedBusId, setExpandedBusId] = useState(null);
 
   const handleSearch = async () => {
+    
+    triggerPropellerAd();
+     
     const fromQuery = from.trim().toLowerCase();
     const toQuery = to.trim().toLowerCase();
  const navigate = useNavigate();
+
+
+// Trigger Propeller OnClick ad
+const triggerPropellerAd = () => {
+  if (window.PropellerAds && typeof window.PropellerAds.ShowAd === "function") {
+    window.PropellerAds.ShowAd();
+  }
+};
 
 
     if (!fromQuery || !toQuery) {

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import axios from "axios";
 
 import { getDepartureTime } from "../utils/getDepartureTime";
@@ -18,7 +20,8 @@ function SearchBus() {
   const handleSearch = async () => {
     const fromQuery = from.trim().toLowerCase();
     const toQuery = to.trim().toLowerCase();
- 
+ const navigate = useNavigate();
+
 
     if (!fromQuery || !toQuery) {
       setError("Please enter both From and To locations");
@@ -259,6 +262,8 @@ function SearchBus() {
                                 </div>
                               )}
 
+         
+
                           </div>
                           
                         </div>
@@ -281,6 +286,8 @@ function SearchBus() {
                           </svg>
                           <span>{isExpanded ? 'Hide' : 'Details'}</span>
                         </button>
+ 
+
                       </div>
                     </div>
 

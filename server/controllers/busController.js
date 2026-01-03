@@ -429,7 +429,7 @@ module.exports = {
 const mongoose = require("mongoose");
 const Bus = require("../models/busModel");
 const BusRequest = require("../models/busRequestModel");
-const BusUpdateRequest = require("../models/busUpdateRequestModel");
+const BusUpdateRequest = require("../models/BusEditRequestModel");
 const SearchStats = require("../models/SearchStats");
 // -------------------------
 // USER: Request to add a bus

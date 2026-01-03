@@ -9,6 +9,7 @@ import ProfilePage from "./Pages/AccountPage";
 import AccountPage from "./Pages/AccountPage";
 import SearchBus from "./Pages/SearchBus";
 import SearchBusByName from "./Pages/SearchBusByName";
+import BusEditControl from "./Pages/BusEditControl";
 
 import UpdateBus from "./Pages/UpdateBus";
 
@@ -28,6 +29,7 @@ function App() {
         <Route path="/account" element={<AccountPage/>} />
        
         <Route path="/update" element={<UpdateBus/>} />
+        <Route path="/bus-edit" element={<BusEditControl />} />
 
       </Routes>
     </Router>

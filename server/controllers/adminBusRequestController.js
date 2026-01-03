@@ -1,4 +1,4 @@
-const BusUpdateRequest = require("../models/busUpdateRequestModel");
+const BusUpdateRequest = require("../models/BusEditRequestModel");
 const Bus = require("../models/busModel");
 
 /**

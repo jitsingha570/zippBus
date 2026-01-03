@@ -1,35 +1,53 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-const AdminBusUpdateRequests = () => {
+export default function AdminBusEditRequests() {
+  const navigate = useNavigate();
+
   const [requests, setRequests] = useState([]);
-  const [status, setStatus] = useState("pending");
   const [loading, setLoading] = useState(true);
-  const [rejectReason, setRejectReason] = useState("");
-  const [selectedId, setSelectedId] = useState(null);
-
-  const token = localStorage.getItem("adminToken"); // ⚠️ admin token
+  const [error, setError] = useState("");
 
   // =========================
-  // FETCH UPDATE REQUESTS
+  // Fetch all pending requests
   // =========================
   const fetchRequests = async () => {
     try {
       setLoading(true);
+      setError("");
+
+      const token = localStorage.getItem("adminToken");
+      if (!token) {
+        setError("Please login as admin");
+        navigate("/login");
+        return;
+      }
+
       const res = await axios.get(
-        `${API_URL}/buses/updates?status=${status}`,
+        `${API_URL}/api/bus-edit/requests/all`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      setRequests(res.data.requests);
+
+      setRequests(res.data.requests || []);
     } catch (err) {
       console.error(err);
-      alert("Failed to load update requests");
+
+      if (err.response?.status === 401) {
+        setError("Session expired. Please login again.");
+        localStorage.removeItem("token");
+        navigate("/login");
+      } else if (err.response?.status === 403) {
+        setError("Access denied. Admin login required.");
+      } else {
+        setError("Failed to load requests");
+      }
     } finally {
       setLoading(false);
     }
@@ -37,180 +55,128 @@ const AdminBusUpdateRequests = () => {
 
   useEffect(() => {
     fetchRequests();
-  }, [status]);
+  }, []);
 
   // =========================
-  // APPROVE
+  // Approve Request
   // =========================
-  const approveRequest = async (id) => {
-    if (!window.confirm("Approve this bus update?")) return;
-
+  const handleApprove = async (id) => {
     try {
+      const token = localStorage.getItem("token");
+
       await axios.put(
-        `${API_URL}/buses/updateApprove/${id}`,
+        `${API_URL}/api/bus-edit/requests/${id}/approve`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      fetchRequests();
+
+      setRequests((prev) => prev.filter((r) => r._id !== id));
     } catch (err) {
-      alert("Approval failed");
+      alert("Failed to approve request");
     }
   };
 
   // =========================
-  // REJECT
+  // Reject Request
   // =========================
-  const rejectRequest = async () => {
-    if (!rejectReason) {
-      alert("Please provide a rejection reason");
-      return;
-    }
-
+  const handleReject = async (id) => {
     try {
+      const token = localStorage.getItem("token");
+
       await axios.put(
-        `${API_URL}/buses/updateReject/${selectedId}`,
-        { reason: rejectReason },
+        `${API_URL}/api/bus-edit/requests/${id}/reject`,
+        {},
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setRejectReason("");
-      setSelectedId(null);
-      fetchRequests();
+
+      setRequests((prev) => prev.filter((r) => r._id !== id));
     } catch (err) {
-      alert("Rejection failed");
+      alert("Failed to reject request");
     }
   };
-
-  if (loading) return <p className="text-center mt-10">Loading requests...</p>;
 
   // =========================
   // UI
   // =========================
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
+        Loading requests...
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-white shadow rounded">
-      <h2 className="text-2xl font-bold mb-4">Bus Update Requests (Admin)</h2>
+    <div className="min-h-screen bg-gray-100 p-6">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-bold mb-6">
+          Pending Bus Edit Requests
+        </h1>
 
-      {/* STATUS FILTER */}
-      <select
-        value={status}
-        onChange={(e) => setStatus(e.target.value)}
-        className="border p-2 mb-4"
-      >
-        <option value="pending">Pending</option>
-        <option value="approved">Approved</option>
-        <option value="rejected">Rejected</option>
-      </select>
-
-      {requests.length === 0 && (
-        <p className="text-gray-600">No update requests found.</p>
-      )}
-
-      {requests.map((req) => (
-        <div
-          key={req._id}
-          className="border rounded p-4 mb-4 bg-gray-50"
-        >
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold text-lg">
-              {req.busName} ({req.busNumber})
-            </h3>
-            <span className="text-sm font-medium">
-              Status:{" "}
-              <span
-                className={
-                  req.status === "pending"
-                    ? "text-yellow-600"
-                    : req.status === "approved"
-                    ? "text-green-600"
-                    : "text-red-600"
-                }
-              >
-                {req.status}
-              </span>
-            </span>
+        {error && (
+          <div className="bg-red-100 text-red-700 p-4 rounded mb-4">
+            {error}
           </div>
+        )}
 
-          <p><b>Type:</b> {req.busType}</p>
-          <p><b>Capacity:</b> {req.capacity}</p>
-          <p><b>Fare:</b> ₹{req.fare}</p>
+        {requests.length === 0 && !error && (
+          <p className="text-gray-600">No pending requests</p>
+        )}
 
-          <p className="mt-2">
-            <b>Amenities:</b> {req.amenities.join(", ") || "None"}
-          </p>
+        <div className="space-y-6">
+          {requests.map((req) => (
+            <div
+              key={req._id}
+              className="bg-white rounded-xl shadow border p-6"
+            >
+              <h2 className="text-lg font-semibold mb-1">
+                {req.busId?.busName || "Unknown Bus"} (
+                {req.busId?.busNumber})
+              </h2>
 
-          {/* STOPPAGES */}
-          <div className="mt-2">
-            <b>Stoppages:</b>
-            <ul className="list-disc ml-6">
-              {req.stoppages.map((s, i) => (
-                <li key={i}>
-                  {s.name} — {s.goingTime} / {s.returnTime}
-                </li>
-              ))}
-            </ul>
-          </div>
+              <p className="text-sm text-gray-500 mb-3">
+                Requested by: {req.userId?.name || "Unknown"}
+              </p>
 
-          {/* REJECTION REASON */}
-          {req.status === "rejected" && (
-            <p className="text-red-600 mt-2">
-              <b>Reason:</b> {req.rejectionReason}
-            </p>
-          )}
+              <div className="bg-gray-50 p-4 rounded mb-4">
+                <h3 className="font-medium mb-2">Requested Changes</h3>
 
-          {/* ACTION BUTTONS */}
-          {req.status === "pending" && (
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={() => approveRequest(req._id)}
-                className="bg-green-600 text-white px-4 py-2 rounded"
-              >
-                Approve
-              </button>
+                {req.changes ? (
+                  <pre className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {JSON.stringify(req.changes, null, 2)}
+                  </pre>
+                ) : (
+                  <p className="text-gray-500">No change data</p>
+                )}
 
-              <button
-                onClick={() => setSelectedId(req._id)}
-                className="bg-red-600 text-white px-4 py-2 rounded"
-              >
-                Reject
-              </button>
+                <p className="text-sm text-gray-600 mt-2">
+                  Reason: {req.reason || "N/A"}
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  onClick={() => handleApprove(req._id)}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
+                >
+                  Approve
+                </button>
+
+                <button
+                  onClick={() => handleReject(req._id)}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                >
+                  Reject
+                </button>
+              </div>
             </div>
-          )}
+          ))}
         </div>
-      ))}
-
-      {/* REJECT MODAL */}
-      {selectedId && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded w-96">
-            <h3 className="font-bold mb-2">Reject Update Request</h3>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              className="border w-full p-2"
-              placeholder="Enter rejection reason"
-            />
-            <div className="flex justify-end gap-3 mt-4">
-              <button
-                onClick={() => setSelectedId(null)}
-                className="px-4 py-2 border rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={rejectRequest}
-                className="bg-red-600 text-white px-4 py-2 rounded"
-              >
-                Reject
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
-};
-
-export default AdminBusUpdateRequests;
+}

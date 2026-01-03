@@ -21,14 +21,22 @@ function SearchBus() {
    
 // Trigger Propeller OnClick ad
 const triggerPropellerAd = () => {
+  // Check if the Propeller script is loaded and the function exists
   if (window.PropellerAds && typeof window.PropellerAds.ShowAd === "function") {
-    window.PropellerAds.ShowAd();
+    try {
+      window.PropellerAds.ShowAd();
+    } catch (err) {
+      console.warn("PropellerAds trigger failed:", err);
+    }
+  } else {
+    console.warn("PropellerAds not ready yet");
   }
 };
 
   const handleSearch = async () => {
     
-    triggerPropellerAd();
+    setTimeout(triggerPropellerAd, 50); // slight delay for smooth UX
+
      
     const fromQuery = from.trim().toLowerCase();
     const toQuery = to.trim().toLowerCase();

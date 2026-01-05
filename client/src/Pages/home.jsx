@@ -243,11 +243,12 @@ useEffect(() => {
         </div>
 
         {/* Popular Buses Section */}
+       {/*   need update of this page 
         <div className="py-20 bg-gradient-to-br from-purple-50 via-white to-purple-50">
           <div className="container mx-auto px-4">
             <PopularBuses />
           </div>
-        </div>
+        </div>*/}
 
         {/* Footer CTA Section */}
         <div className="py-20 bg-gradient-to-r from-purple-600 to-purple-700 relative overflow-hidden">

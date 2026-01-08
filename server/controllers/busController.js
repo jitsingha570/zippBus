@@ -463,21 +463,8 @@ const requestBus = async (req, res) => {
     const normalizedBusNumber = normalizeBusNumber(busNumber);
 
     // ===============================
-    // ❌ CHECK DUPLICATE (IMPORTANT)
+    // ✅ CHECK DUPLICATE ONLY IN MAIN BUS COLLECTION
     // ===============================
-
-    // 1️⃣ Check in BusRequest (pending / rejected / approved)
-    const existingRequest = await BusRequest.findOne({
-      busNumber: normalizedBusNumber
-    });
-
-    if (existingRequest) {
-      return res.status(409).json({
-        error: "Bus with this number is already requested"
-      });
-    }
-
-    // 2️⃣ OPTIONAL: Check in main Bus collection (already approved buses)
     const existingBus = await Bus.findOne({
       busNumber: normalizedBusNumber
     });
@@ -516,6 +503,7 @@ const requestBus = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 

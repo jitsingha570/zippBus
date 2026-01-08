@@ -845,12 +845,26 @@ const searchBus = async (req, res) => {
 // -------------------------
 // GET ALL BUSES (Admin)
 // -------------------------
+// Get all buses
 const getAllBuses = async (req, res) => {
   try {
-    const buses = await Bus.find();
-    res.json(buses);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    // Fetch all buses sorted by creation date (latest first)
+    const buses = await Bus.find()
+      .populate("owner", "name email") // optional: include owner info
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: buses.length,
+      data: buses
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message
+    });
   }
 };
 
@@ -926,6 +940,10 @@ const searchBusByNameOrNumber = async (req, res) => {
   }
 };
 
+
+
+
+
 module.exports = {
   requestBus,
   getMyBuses,
@@ -937,5 +955,6 @@ module.exports = {
   searchBus,
   getAllBuses,
   getAllRoutes,
-  searchBusByNameOrNumber
+  searchBusByNameOrNumber,
+  
 };

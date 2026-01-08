@@ -25,6 +25,7 @@ const router = express.Router();
 router.post("/request", verifyToken, requestBus);
 router.get("/search", searchBus);
 router.get("/search-by-name-or-number", searchBusByNameOrNumber);
+router.get("/allbuses",  getAllBuses);
 
 router.get("/my-buses", verifyToken, getMyBuses);
 

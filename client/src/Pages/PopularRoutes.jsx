@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+import { Link } from "react-router-dom";
 const API_URL = import.meta.env.VITE_API_URL;
 
 function PopularRoutes() {
@@ -130,9 +130,11 @@ function PopularRoutes() {
                 <p className="text-gray-600 mb-6">
                   We're constantly expanding our network. Search for more destinations or contact us for custom routes.
                 </p>
+                <Link to="/routes">
                 <button className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl">
                   Explore All Routes
                 </button>
+                 </Link>
               </div>
             </div>
           </>

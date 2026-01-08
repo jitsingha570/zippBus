@@ -23,6 +23,9 @@ const adminAuthRoutes = require("./routes/adminAuthRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const countsRoutes = require("./routes/countsRoutes");
 const busEditRoute = require("./routes/busEditRoute");
+const uniqueRoutes = require("./routes/uniqueRoutes");
+
+
 
 
 app.use("/api/buses", busRoutes);  // 🚌 Bus-related endpoints
@@ -31,6 +34,7 @@ app.use("/api/admins", adminAuthRoutes); // 🛠️ Admin login/register
 app.use("/api/reports", reportRoutes);  // 📝 Report endpoints
 app.use("/api/counts", countsRoutes);  // 📊 Counts endpoints
 app.use("/api/bus-edit", busEditRoute); // 🚌 Bus editing endpoints
+app.use("/api/bus-routes", uniqueRoutes); // 🚍 Unique routes endpoint
 // ✅ MongoDB Connection
 const mongoURI = process.env.MONGO_URI;
 if (!mongoURI) {

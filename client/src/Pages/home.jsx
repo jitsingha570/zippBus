@@ -4,6 +4,7 @@ import SearchBus from './SearchBus';
 import SearchBusByName from './SearchBusByName';
 import PopularRoutes from './PopularRoutes';
 import PopularBuses from './PopularBuses';
+import { useNavigate } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -75,6 +76,12 @@ useEffect(() => {
 
     return <span>{count.toLocaleString()}</span>;
   };
+
+   const navigate = useNavigate();
+    const goToAllBuses = () => {
+    navigate("/allbuses"); // Navigate to all buses page
+    };
+  
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
@@ -264,10 +271,11 @@ useEffect(() => {
               Ready for Your Next Journey?
             </h2>
             <p className="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
-              Book now and experience the future of bus travel
+              Explore now and experience the future of bus travel
             </p>
-            <button className="px-12 py-4 bg-white text-purple-600 font-bold text-lg rounded-full hover:bg-purple-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl">
-              Search Buses Now
+            <button  onClick={goToAllBuses}
+             className="px-12 py-4 bg-white text-purple-600 font-bold text-lg rounded-full hover:bg-purple-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl">
+              Explore Buses Now
             </button>
           </div>
         </div>
@@ -286,5 +294,6 @@ useEffect(() => {
     </div>
   );
 }
+
 
 export default Home;

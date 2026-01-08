@@ -18,13 +18,13 @@ const RoutesPage = () => {
         🚌 Available Routes
       </h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {routes.map((route, index) => (
           <div
             key={index}
-            className="bg-white p-5 rounded-xl shadow"
+            className="rounded-2xl shadow-lg border border-purple-100 p-5 rounded-xl shadow "
           >
-            <h2 className="text-xl font-semibold mb-3">
+            <h2 className="text-2xl font-bold text-black">
               {route.from} ➝ {route.to}
             </h2>
 
@@ -32,11 +32,16 @@ const RoutesPage = () => {
               onClick={() =>
                 navigate(`/buses?from=${route.from}&to=${route.to}`)
               }
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+              className="w-full bg-purple-700 text-white py-2 rounded hover:bg-purple-700"
             >
               View Buses
             </button>
           </div>
+
+
+
+    
+
         ))}
       </div>
     </div>

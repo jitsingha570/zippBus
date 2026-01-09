@@ -20,25 +20,21 @@ export function getDepartureTime(stoppages, from, to) {
 
   if (!fromStop || !toStop) return null;
 
-  const goingFrom = timeToMinutes(fromStop.goingTime);
-  const goingTo = timeToMinutes(toStop.goingTime);
+  if (fromStop.order === toStop.order) {
+    return null; // same stop not allowed
+  }
 
-  const returnFrom = timeToMinutes(fromStop.returnTime);
-  const returnTo = timeToMinutes(toStop.returnTime);
-
-  if (goingFrom < goingTo) {
+  // ✅ UP JOURNEY
+  if (fromStop.order < toStop.order) {
     return {
       direction: "going",
       time: fromStop.goingTime
     };
   }
 
-  if (returnFrom < returnTo) {
-    return {
-      direction: "return",
-      time: fromStop.returnTime
-    };
-  }
-
-  return null;
+  // ✅ DOWN JOURNEY
+  return {
+    direction: "return",
+    time: fromStop.returnTime
+  };
 }

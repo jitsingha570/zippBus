@@ -439,14 +439,26 @@ const requestBus = async (req, res) => {
     console.log("BODY:", req.body);
     console.log("USER:", req.user);
 
-    const { busName, busNumber, busType, capacity, fare, amenities, stoppages } = req.body;
+    const {
+      busName,
+      busNumber,
+      busType,
+      capacity,
+      fare,
+      amenities,
+      stoppages,
+
+      // ✅ NEW: contact numbers
+      contactNumber1,
+      contactNumber2
+    } = req.body;
 
     if (!req.user?.id) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
     // ===============================
-    // Validate stoppages
+    // 1. Validate stoppages
     // ===============================
     if (!Array.isArray(stoppages) || stoppages.length < 3) {
       return res.status(400).json({
@@ -455,7 +467,7 @@ const requestBus = async (req, res) => {
     }
 
     // ===============================
-    // Normalize bus number
+    // 2. Normalize bus number
     // ===============================
     const normalizeBusNumber = (number) =>
       number.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
@@ -463,13 +475,13 @@ const requestBus = async (req, res) => {
     const normalizedBusNumber = normalizeBusNumber(busNumber);
 
     // ===============================
-    // ❌ CHECK DUPLICATE (IMPORTANT)
+    // 3. ❌ Duplicate check
     // ===============================
 
-    // 1️⃣ Check in BusRequest (pending / rejected / approved)
+    // 3.1 Check in BusRequest collection
     const existingRequest = await BusRequest.findOne({
       busNumber: normalizedBusNumber
-    }); 
+    });
 
     if (existingRequest) {
       return res.status(409).json({
@@ -477,7 +489,7 @@ const requestBus = async (req, res) => {
       });
     }
 
-    // 2️⃣ OPTIONAL: Check in main Bus collection (already approved buses)
+    // 3.2 Check in approved Bus collection
     const existingBus = await Bus.findOne({
       busNumber: normalizedBusNumber
     });
@@ -489,23 +501,49 @@ const requestBus = async (req, res) => {
     }
 
     // ===============================
-    // Create new request
+    // 4. Validate contact numbers (optional but safe)
+    // ===============================
+    const phoneRegex = /^(\+91)?[6-9]\d{9}$/;
+
+    if (contactNumber1 && !phoneRegex.test(contactNumber1)) {
+      return res.status(400).json({
+        error: "Invalid primary contact number"
+      });
+    }
+
+    if (contactNumber2 && !phoneRegex.test(contactNumber2)) {
+      return res.status(400).json({
+        error: "Invalid secondary contact number"
+      });
+    }
+
+    // ===============================
+    // 5. Create new bus request
     // ===============================
     const newRequest = new BusRequest({
       userId: req.user.id,
+
       busName,
-      busNumber: normalizedBusNumber, // normalized for uniqueness
+      busNumber: normalizedBusNumber, // for uniqueness
       displayNumber: busNumber,       // original for UI
+
       busType,
       capacity,
       fare,
       amenities,
-      stoppages
+      stoppages,
+
+      // ✅ SAVE contact numbers
+      contactNumber1: contactNumber1 || undefined,
+      contactNumber2: contactNumber2 || undefined
     });
 
     await newRequest.save();
 
-    res.status(201).json({
+    // ===============================
+    // 6. Response
+    // ===============================
+    return res.status(201).json({
       success: true,
       message: "Bus request submitted successfully",
       data: newRequest
@@ -513,9 +551,15 @@ const requestBus = async (req, res) => {
 
   } catch (error) {
     console.error("BACKEND ERROR 👉", error);
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
-}; 
+};
+
+
+
 
 
 
@@ -719,10 +763,10 @@ const searchBus = async (req, res) => {
     to = to.trim().toLowerCase();
 
     // ===============================
-    // 2. 🔥 INCREMENT SEARCH COUNT
+    // 2. 🔥 Increment search stats
     // ===============================
     await SearchStats.findOneAndUpdate(
-      {}, // single global document
+      {},
       {
         $inc: {
           totalSearches: 1,
@@ -731,14 +775,15 @@ const searchBus = async (req, res) => {
       },
       { upsert: true, new: true }
     );
+
     // ===============================
-    // 2. Fetch all buses
+    // 3. Fetch all buses
     // ===============================
     const buses = await Bus.find({}).lean();
     const matchedBuses = [];
 
     // ===============================
-    // 3. Process each bus
+    // 4. Process each bus
     // ===============================
     for (const bus of buses) {
       if (!bus.stoppages || bus.stoppages.length < 2) continue;
@@ -757,40 +802,31 @@ const searchBus = async (req, res) => {
       let direction = "";
 
       // ===============================
-      // 4. NORMAL DIRECTION (GOING)
+      // 5. GOING direction
       // ===============================
       if (fromStop.order < toStop.order) {
         direction = "GOING";
 
         routeStoppages = bus.stoppages
-          .filter(s =>
-            s.order >= fromStop.order &&
-            s.order <= toStop.order
-          )
+          .filter(s => s.order >= fromStop.order && s.order <= toStop.order)
           .sort((a, b) => a.order - b.order);
       }
 
       // ===============================
-      // 5. REVERSE DIRECTION (RETURN)
+      // 6. RETURN direction
       // ===============================
       else if (fromStop.order > toStop.order) {
         direction = "RETURN";
 
         routeStoppages = bus.stoppages
-          .filter(s =>
-            s.order <= fromStop.order &&
-            s.order >= toStop.order
-          )
+          .filter(s => s.order <= fromStop.order && s.order >= toStop.order)
           .sort((a, b) => b.order - a.order);
-      }
-
-      // If same stop
-      else {
+      } else {
         continue;
       }
 
       // ===============================
-      // 6. Map stoppages (both times)
+      // 7. Format stoppages
       // ===============================
       const formattedStoppages = routeStoppages.map(s => ({
         name: s.name,
@@ -800,9 +836,9 @@ const searchBus = async (req, res) => {
       }));
 
       // ===============================
-      // 7. Push matched bus
+      // 8. Build response object
       // ===============================
-      matchedBuses.push({
+      const busData = {
         _id: bus._id,
         busName: bus.busName,
         busNumber: bus.busNumber,
@@ -810,19 +846,30 @@ const searchBus = async (req, res) => {
         fare: bus.fare,
         capacity: bus.capacity,
         amenities: bus.amenities,
-        direction, // 👈 GOING / RETURN
+        direction,
         route: {
           from,
           to,
           stoppages: formattedStoppages
         }
-      });
+      };
+
+      // ✅ Add contact numbers if available
+      if (bus.contactNumber1) {
+        busData.contactNumber1 = bus.contactNumber1;
+      }
+
+      if (bus.contactNumber2) {
+        busData.contactNumber2 = bus.contactNumber2;
+      }
+
+      matchedBuses.push(busData);
     }
 
     // ===============================
-    // 8. Response
+    // 9. Response
     // ===============================
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       count: matchedBuses.length,
       buses: matchedBuses
@@ -830,13 +877,16 @@ const searchBus = async (req, res) => {
 
   } catch (error) {
     console.error("Search Bus Error:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Internal Server Error",
       error: error.message
     });
   }
 };
+
+
+
 
 
 

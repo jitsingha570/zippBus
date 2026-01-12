@@ -13,7 +13,7 @@ import BusEditControl from "./Pages/BusEditControl";
 import AllBuses from "./Pages/getAllBuses";
 import RoutesPage from "./Pages/RoutesPage";
 import BusesPage from "./Pages/BusesPage";
-
+import BusCard from "./Components/BusCard";
 import UpdateBus from "./Pages/UpdateBus";
 
 function App() {
@@ -36,6 +36,7 @@ function App() {
         <Route path="/allbuses" element={<AllBuses />} />
          <Route path="/routes" element={<RoutesPage />} />
         <Route path="/buses" element={<BusesPage />} />
+        <Route path="/buscard" element={<BusCard />} />
       </Routes>
     </Router>
   );

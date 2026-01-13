@@ -684,15 +684,33 @@ const getAllBusRequests = async (req, res) => {
 const approveBusRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: "Invalid bus request ID" });
 
+    // 1️⃣ Validate request ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid bus request ID" });
+    }
+
+    // 2️⃣ Find bus request
     const request = await BusRequest.findById(id);
-    if (!request) return res.status(404).json({ error: "Bus request not found" });
-    if (request.status === "approved") return res.status(400).json({ error: "Bus already approved" });
+    if (!request) {
+      return res.status(404).json({ error: "Bus request not found" });
+    }
 
+    if (request.status === "approved") {
+      return res.status(400).json({ error: "Bus already approved" });
+    }
+
+    if (request.status === "rejected") {
+      return res.status(400).json({ error: "Rejected request cannot be approved" });
+    }
+
+    // 3️⃣ Prevent duplicate bus number
     const existingBus = await Bus.findOne({ busNumber: request.busNumber });
-    if (existingBus) return res.status(400).json({ error: "Bus number already exists" });
+    if (existingBus) {
+      return res.status(409).json({ error: "Bus number already exists" });
+    }
 
+    // 4️⃣ Create approved bus (🔥 CONTACT NUMBERS INCLUDED)
     const newBus = new Bus({
       busName: request.busName,
       busNumber: request.busNumber,
@@ -701,20 +719,39 @@ const approveBusRequest = async (req, res) => {
       fare: request.fare >= 50 ? request.fare : 100,
       amenities: Array.isArray(request.amenities) ? request.amenities : [],
       stoppages: request.stoppages,
+
+      // ✅ IMPORTANT
+      contactNumber1: request.contactNumber1,
+      contactNumber2: request.contactNumber2,
+
       owner: request.userId
     });
 
-    await newBus.save();
+    // 5️⃣ Save bus + update request status atomically
     request.status = "approved";
-    await request.save();
 
-    res.status(200).json({ success: true, message: "Bus approved successfully", bus: newBus });
+    await Promise.all([
+      newBus.save(),
+      request.save()
+    ]);
 
-  } catch (err) {
-    console.error("Approve Bus Error:", err);
-    res.status(500).json({ error: "Internal Server Error", details: err.message });
+    // 6️⃣ Success response
+    return res.status(200).json({
+      success: true,
+      message: "Bus approved successfully",
+      bus: newBus
+    });
+
+  } catch (error) {
+    console.error("Approve Bus Error:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      details: error.message
+    });
   }
 };
+
+
 
 // -------------------------
 // ADMIN: Reject bus request
@@ -763,7 +800,7 @@ const searchBus = async (req, res) => {
     to = to.trim().toLowerCase();
 
     // ===============================
-    // 2. 🔥 Increment search stats
+    // 2. Increment search stats
     // ===============================
     await SearchStats.findOneAndUpdate(
       {},
@@ -791,7 +828,6 @@ const searchBus = async (req, res) => {
       const fromStop = bus.stoppages.find(
         s => s.name.toLowerCase() === from
       );
-
       const toStop = bus.stoppages.find(
         s => s.name.toLowerCase() === to
       );
@@ -802,28 +838,24 @@ const searchBus = async (req, res) => {
       let direction = "";
 
       // ===============================
-      // 5. GOING direction
+      // 5. GOING
       // ===============================
       if (fromStop.order < toStop.order) {
         direction = "GOING";
-
         routeStoppages = bus.stoppages
           .filter(s => s.order >= fromStop.order && s.order <= toStop.order)
           .sort((a, b) => a.order - b.order);
       }
 
       // ===============================
-      // 6. RETURN direction
+      // 6. RETURN
       // ===============================
       else if (fromStop.order > toStop.order) {
         direction = "RETURN";
-
         routeStoppages = bus.stoppages
           .filter(s => s.order <= fromStop.order && s.order >= toStop.order)
           .sort((a, b) => b.order - a.order);
-      } else {
-        continue;
-      }
+      } else continue;
 
       // ===============================
       // 7. Format stoppages
@@ -836,7 +868,7 @@ const searchBus = async (req, res) => {
       }));
 
       // ===============================
-      // 8. Build response object
+      // 8. Build response (🔥 FIXED)
       // ===============================
       const busData = {
         _id: bus._id,
@@ -846,6 +878,11 @@ const searchBus = async (req, res) => {
         fare: bus.fare,
         capacity: bus.capacity,
         amenities: bus.amenities,
+
+        // ✅ ALWAYS RETURN THESE
+        contactNumber1: bus.contactNumber1 ?? "",
+        contactNumber2: bus.contactNumber2 ?? "",
+
         direction,
         route: {
           from,
@@ -853,15 +890,6 @@ const searchBus = async (req, res) => {
           stoppages: formattedStoppages
         }
       };
-
-      // ✅ Add contact numbers if available
-      if (bus.contactNumber1) {
-        busData.contactNumber1 = bus.contactNumber1;
-      }
-
-      if (bus.contactNumber2) {
-        busData.contactNumber2 = bus.contactNumber2;
-      }
 
       matchedBuses.push(busData);
     }
@@ -884,6 +912,7 @@ const searchBus = async (req, res) => {
     });
   }
 };
+
 
 
 

@@ -38,17 +38,31 @@ const busSchema = new mongoose.Schema({
     unique: true 
   },
 
-  // ✅ OPTIONAL CONTACT NUMBERS
+  // ✅ OPTIONAL CONTACT NUMBERS (BLANK ALLOWED)
   contactNumber1: {
     type: String,
     trim: true,
-    match: [/^(\+91)?[6-9]\d{9}$/, "Invalid contact number 1"]
+    default: "",
+    validate: {
+      validator: function (v) {
+        if (!v) return true; // ✅ allow empty string
+        return /^(\+91)?[6-9]\d{9}$/.test(v);
+      },
+      message: "Invalid contact number 1"
+    }
   },
 
   contactNumber2: {
     type: String,
     trim: true,
-    match: [/^(\+91)?[6-9]\d{9}$/, "Invalid contact number 2"]
+    default: "",
+    validate: {
+      validator: function (v) {
+        if (!v) return true; // ✅ allow empty string
+        return /^(\+91)?[6-9]\d{9}$/.test(v);
+      },
+      message: "Invalid contact number 2"
+    }
   },
 
   busType: {

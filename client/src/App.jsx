@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
+
 import Home from "./Pages/home";
 import Navbar from "./Components/navbar";
 import AddNewBus from "./Pages/addnew";
@@ -18,27 +20,34 @@ import UpdateBus from "./Pages/UpdateBus";
 
 function App() {
   return (
-    <Router>
-      <Navbar />
+   <BrowserRouter>
+  <Navbar />
 
-      <Routes>
-        <Route path="/" element={<Home />} />
+  <Routes>
+    <Route path="/" element={<Home />} />
 
-        <Route path="/addnew" element={<AddNewBus />} />
-        <Route path="/search" element={<SearchBus />} />
-          <Route path="/searchBusByName" element={<SearchBusByName />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/account" element={<AccountPage/>} />
-       
-        <Route path="/update" element={<UpdateBus/>} />
-        <Route path="/bus-edit" element={<BusEditControl />} />
-        <Route path="/allbuses" element={<AllBuses />} />
-         <Route path="/routes" element={<RoutesPage />} />
-        <Route path="/buses" element={<BusesPage />} />
-        <Route path="/buscard" element={<BusCard />} />
-      </Routes>
-    </Router>
+    <Route path="/addnew" element={<AddNewBus />} />
+
+    {/* optional old search */}
+    <Route path="/search" element={<SearchBus />} />
+
+    {/* SEO-friendly route */}
+    <Route path="/bus/:route" element={<SearchBus />} />
+
+    <Route path="/searchBusByName" element={<SearchBusByName />} />
+    <Route path="/register" element={<RegisterPage />} />
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/account" element={<AccountPage />} />
+
+    <Route path="/update" element={<UpdateBus />} />
+    <Route path="/bus-edit" element={<BusEditControl />} />
+    <Route path="/allbuses" element={<AllBuses />} />
+    <Route path="/routes" element={<RoutesPage />} />
+    <Route path="/buses" element={<BusesPage />} />
+    <Route path="/buscard" element={<BusCard />} />
+  </Routes>
+</BrowserRouter>
+
   );
 }
 

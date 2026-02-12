@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { getDepartureTime } from "../utils/getDepartureTime";
 
+import { useNavigate, useLocation } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+
 const BusCard = ({ bus, index }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -10,9 +13,25 @@ const BusCard = ({ bus, index }) => {
 
   const departureInfo = getDepartureTime(stoppages, routeFrom, routeTo);
 
-  const toggleStoppageDetails = () => {
-    setIsExpanded(!isExpanded);
-  };
+const [searchParams, setSearchParams] = useSearchParams();
+
+ const toggleStoppageDetails = () => {
+  const newState = !isExpanded;
+  setIsExpanded(newState);
+
+  if (!bus?.busName || !bus?.busNumber) return;
+
+  const slug = `${bus.busName}-${bus.busNumber}`
+    .replace(/\s+/g, "-")
+    .toLowerCase();
+
+  if (newState) {
+    setSearchParams({ bus: slug });  // stays on same page
+  } else {
+    setSearchParams({});
+  }
+};
+
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-purple-100 hover:shadow-xl transition-all duration-300 overflow-hidden">

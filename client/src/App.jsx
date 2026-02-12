@@ -17,6 +17,7 @@ import RoutesPage from "./Pages/RoutesPage";
 import BusesPage from "./Pages/BusesPage";
 import BusCard from "./Components/BusCard";
 import UpdateBus from "./Pages/UpdateBus";
+import BusDetails from "./Pages/BusDetails";
 
 function App() {
   return (
@@ -45,6 +46,8 @@ function App() {
     <Route path="/routes" element={<RoutesPage />} />
     <Route path="/buses" element={<BusesPage />} />
     <Route path="/buscard" element={<BusCard />} />
+    <Route path="/bus/:slug" element={<BusDetails />} />
+
   </Routes>
 </BrowserRouter>
 

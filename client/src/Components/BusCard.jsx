@@ -1,5 +1,6 @@
 // BusCard.jsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function BusCard({ bus }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -7,9 +8,18 @@ export default function BusCard({ bus }) {
   const routeFrom = bus.routeFrom || "N/A";
   const routeTo = bus.routeTo || "N/A";
   const stoppages = bus.stoppages || [];
+  const navigate = useNavigate();
   //const departureInfo = bus.departureInfo; // adjust to your API
 
-  const toggleStoppageDetails = () => setIsExpanded((prev) => !prev);
+  const toggleStoppageDetails = () => {
+  const slug = `${bus.busName}-${bus.busNumber}`
+    .replace(/\s+/g, "-")       // replace spaces with dash
+    .toLowerCase();             // optional lowercase
+
+  navigate(`/bus/${slug}`);
+};
+
+
 
   return (
     <div

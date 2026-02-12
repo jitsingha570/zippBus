@@ -136,20 +136,20 @@ function Home() {
           ))}
 
           {/* Additional Decorative Elements */}
-          <div className="absolute inset-0 opacity-20">
+          <div className="absolute inset-0 opacity-80">
             {/* Large Purple Circles */}
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full opacity-20 animate-pulse"></div>
-            <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full opacity-25 animate-pulse delay-1000"></div>
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full opacity-80 animate-pulse"></div>
+            <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full opacity-80 animate-pulse delay-1000"></div>
             
             {/* Small Floating Elements */}
-            <div className="absolute top-1/4 left-1/4 w-4 h-4 bg-white rounded-full opacity-40 animate-float"></div>
-            <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-white rounded-full opacity-50 animate-float-delay-1"></div>
-            <div className="absolute bottom-1/3 left-1/5 w-2 h-2 bg-white rounded-full opacity-60 animate-float-delay-2"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-5 h-5 bg-white rounded-full opacity-35 animate-float-delay-3"></div>
+            <div className="absolute top-1/4 left-1/4 w-4 h-4 bg-white rounded-full opacity-80 animate-float"></div>
+            <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-white rounded-full opacity-80 animate-float-delay-1"></div>
+            <div className="absolute bottom-1/3 left-1/5 w-2 h-2 bg-white rounded-full opacity-80 animate-float-delay-2"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-5 h-5 bg-white rounded-full opacity-85 animate-float-delay-3"></div>
             
             {/* Geometric Shapes */}
-            <div className="absolute top-20 right-20 w-16 h-16 border-2 border-white/40 rounded-lg rotate-45 opacity-40 animate-spin-slow"></div>
-            <div className="absolute bottom-32 left-16 w-12 h-12 border border-white/50 rotate-12 opacity-50"></div>
+            <div className="absolute top-20 right-20 w-16 h-16 border-2 border-white/40 rounded-lg rotate-45 opacity-80 animate-spin-slow"></div>
+            <div className="absolute bottom-32 left-16 w-12 h-12 border border-white/50 rotate-12 opacity-80"></div>
           </div>
         </div>
 

@@ -5,11 +5,17 @@ import SearchBusByName from './SearchBusByName';
 import PopularRoutes from './PopularRoutes';
 import PopularBuses from './PopularBuses';
 import { useNavigate } from 'react-router-dom';
+import imag1 from '../assets/images/img1.jpg';
+import imag2 from '../assets/images/img2.jpg';
+import imag3 from '../assets/images/img3.jpg';
+import imag4 from '../assets/images/img4.jpg';
+import imag5 from '../assets/images/img5.jpg';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function Home() {
   const [isVisible, setIsVisible] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [counts, setCounts] = useState({
     users: 0,
     buses: 0,
@@ -17,38 +23,55 @@ function Home() {
   });
   const [countsLoading, setCountsLoading] = useState(true);
 
+  // Slider images - using actual images from assets folder
+  const sliderImages = [
+    imag1,
+    imag2,
+    imag3,
+    imag4,
+    imag5
+  ];
+
   useEffect(() => {
     const timer = setTimeout(() => setIsVisible(true), 100);
     return () => clearTimeout(timer);
   }, []);
 
+  // Auto-advance slider
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
+    }, 5000); // Change slide every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [sliderImages.length]);
+
   // Fetch counts from API
-useEffect(() => {
-  const fetchCounts = async () => {
-    try {
-      const [usersRes, busesRes, searchesRes] = await Promise.all([
-        axios.get(`${API_URL}/api/counts/users`),
-        axios.get(`${API_URL}/api/counts/buses`),
-        axios.get(`${API_URL}/api/counts/search`)
-      ]);
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const [usersRes, busesRes, searchesRes] = await Promise.all([
+          axios.get(`${API_URL}/api/counts/users`),
+          axios.get(`${API_URL}/api/counts/buses`),
+          axios.get(`${API_URL}/api/counts/search`)
+        ]);
 
-      setCounts({
-        users: usersRes.data.totalUsers || 0,
-        buses: busesRes.data.totalBuses || 0,
-        searches: searchesRes.data.totalSearches || 0
-      });
+        setCounts({
+          users: usersRes.data.totalUsers || 0,
+          buses: busesRes.data.totalBuses || 0,
+          searches: searchesRes.data.totalSearches || 0
+        });
 
-    } catch (error) {
-      console.error('Error fetching counts:', error);
-      setCounts({ users: 0, buses: 0, searches: 0 });
-    } finally {
-      setCountsLoading(false);
-    }
-  };
+      } catch (error) {
+        console.error('Error fetching counts:', error);
+        setCounts({ users: 0, buses: 0, searches: 0 });
+      } finally {
+        setCountsLoading(false);
+      }
+    };
 
-  fetchCounts();
-}, []);
-
+    fetchCounts();
+  }, []);
 
   // Animated counter component
   const AnimatedCounter = ({ end, duration = 2000 }) => {
@@ -77,31 +100,73 @@ useEffect(() => {
     return <span>{count.toLocaleString()}</span>;
   };
 
-   const navigate = useNavigate();
-    const goToAllBuses = () => {
-    navigate("/allbuses"); // Navigate to all buses page
-    };
-  
+  const navigate = useNavigate();
+  const goToAllBuses = () => {
+    navigate("/allbuses");
+  };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100">
-      {/* Hero Section */}
-      <div className="relative w-full min-h-screen flex flex-col justify-center items-center px-4 overflow-hidden">
-        {/* Background Decorative Elements */}
+    <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 ">
+      
+      {/* Hero Section with Slider Background */}
+      <div className="relative w-full min-h-screen flex flex-col justify-center items-center px-4 overflow-hidden pt-20">
+        {/* Slider Background Container */}
         <div className="absolute inset-0 overflow-hidden">
-          {/* Large Purple Circles */}
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full opacity-10 animate-pulse"></div>
-          <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full opacity-15 animate-pulse delay-1000"></div>
-          
-          {/* Small Floating Elements */}
-          <div className="absolute top-1/4 left-1/4 w-4 h-4 bg-purple-400 rounded-full opacity-30 animate-bounce"></div>
-          <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-purple-500 rounded-full opacity-40 animate-bounce delay-500"></div>
-          <div className="absolute bottom-1/3 left-1/5 w-2 h-2 bg-purple-600 rounded-full opacity-50 animate-bounce delay-1000"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-5 h-5 bg-purple-300 rounded-full opacity-25 animate-bounce delay-1500"></div>
-          
-          {/* Geometric Shapes */}
-          <div className="absolute top-20 right-20 w-16 h-16 border-2 border-purple-300 rounded-lg rotate-45 opacity-30 animate-spin-slow"></div>
-          <div className="absolute bottom-32 left-16 w-12 h-12 border border-purple-400 rotate-12 opacity-40"></div>
+          {/* Slider Images */}
+          {sliderImages.map((image, index) => (
+            <div
+              key={index}
+              className={`absolute inset-0 transition-opacity duration-8000 ease-in-out ${
+                index === currentSlide ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              {/* Background Image */}
+              <img 
+                src={image}
+                alt={`Slide ${index + 1}`}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              
+              {/* Blur and Overlay Effect */}
+              <div className="absolute inset-0 backdrop-blur-xs bg-white/20" />
+              
+              {/* Additional gradient overlay for better text readability */}
+              <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-transparent to-purple-900/30" />
+            </div>
+          ))}
+
+          {/* Additional Decorative Elements */}
+          <div className="absolute inset-0 opacity-20">
+            {/* Large Purple Circles */}
+            <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full opacity-20 animate-pulse"></div>
+            <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full opacity-25 animate-pulse delay-1000"></div>
+            
+            {/* Small Floating Elements */}
+            <div className="absolute top-1/4 left-1/4 w-4 h-4 bg-white rounded-full opacity-40 animate-float"></div>
+            <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-white rounded-full opacity-50 animate-float-delay-1"></div>
+            <div className="absolute bottom-1/3 left-1/5 w-2 h-2 bg-white rounded-full opacity-60 animate-float-delay-2"></div>
+            <div className="absolute bottom-1/4 right-1/4 w-5 h-5 bg-white rounded-full opacity-35 animate-float-delay-3"></div>
+            
+            {/* Geometric Shapes */}
+            <div className="absolute top-20 right-20 w-16 h-16 border-2 border-white/40 rounded-lg rotate-45 opacity-40 animate-spin-slow"></div>
+            <div className="absolute bottom-32 left-16 w-12 h-12 border border-white/50 rotate-12 opacity-50"></div>
+          </div>
+        </div>
+
+        {/* Slider Navigation Dots */}
+        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex gap-3">
+          {sliderImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentSlide(index)}
+              className={`transition-all duration-300 rounded-full ${
+                index === currentSlide 
+                  ? 'w-8 h-3 bg-white shadow-lg' 
+                  : 'w-3 h-3 bg-white/50 hover:bg-white/80'
+              }`}
+              aria-label={`Go to slide ${index + 1}`}
+            />
+          ))}
         </div>
 
         {/* Main Content */}
@@ -109,18 +174,18 @@ useEffect(() => {
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
         }`}>
           {/* Hero Title */}
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
-            <span className="bg-gradient-to-r from-purple-600 via-purple-500 to-purple-700 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight drop-shadow-lg">
+            <span className="bg-gradient-to-r from-white via-purple-100 to-white bg-clip-text text-transparent">
               Zipp
             </span>
             <br />
-            <span className="text-gray-800">
+            <span className="text-white drop-shadow-2xl">
               Bus
             </span>
           </h1>
           
           {/* Subtitle */}
-          <p className="text-xl md:text-2xl text-gray-600 font-light max-w-3xl mx-auto mb-12 leading-relaxed">
+          <p className="text-xl md:text-2xl text-white font-light max-w-3xl mx-auto mb-12 leading-relaxed drop-shadow-lg">
             Experience seamless bus searching with our modern platform. 
             <br className="hidden md:block" />
             Fast, reliable, and designed for your comfort.
@@ -128,13 +193,13 @@ useEffect(() => {
 
           {/* Feature Pills */}
           <div className="flex flex-wrap justify-center gap-4 mb-16">
-            <span className="px-6 py-3 bg-white rounded-full shadow-lg text-purple-700 font-medium border border-purple-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <span className="px-6 py-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg text-purple-700 font-medium border border-white/20 hover:shadow-xl transition-all duration-300 hover:scale-105 hover:bg-white">
               ✨ Instant Searching
             </span>
-            <span className="px-6 py-3 bg-purple-100 rounded-full shadow-lg text-purple-800 font-medium hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <span className="px-6 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg text-purple-800 font-medium hover:shadow-xl transition-all duration-300 hover:scale-105 hover:bg-white/90">
               🚌 Premium Buses
             </span>
-            <span className="px-6 py-3 bg-white rounded-full shadow-lg text-purple-700 font-medium border border-purple-100 hover:shadow-xl transition-all duration-300 hover:scale-105">
+            <span className="px-6 py-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg text-purple-700 font-medium border border-white/20 hover:shadow-xl transition-all duration-300 hover:scale-105 hover:bg-white">
               💜 Best Prices
             </span>
           </div>
@@ -144,16 +209,16 @@ useEffect(() => {
         <div className={`w-full max-w-6xl z-10 transform transition-all duration-1000 delay-300 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
         }`}>
-          <div className="bg-white rounded-3xl shadow-2xl border border-purple-100 p-8 md:p-12 backdrop-blur-sm hover:shadow-purple-200/50 transition-all duration-500">
+          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/40 p-8 md:p-12 hover:shadow-purple-200/50 transition-all duration-500">
             <SearchBus />
           </div>
         </div>
        
-         {/*search bus by name or number  */}
-         <div className={`w-full max-w-6xl z-10 transform transition-all duration-1000 delay-300 ${
+        {/* Search bus by name or number */}
+        <div className={`w-full max-w-6xl z-10 mt-6 transform transition-all duration-1000 delay-400 ${
           isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
         }`}>
-          <div className="bg-white rounded-3xl shadow-2xl border border-purple-100 p-8 md:p-12 backdrop-blur-sm hover:shadow-purple-200/50 transition-all duration-500">
+          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/40 p-8 md:p-12 hover:shadow-purple-200/50 transition-all duration-500">
             <SearchBusByName />
           </div>
         </div>
@@ -198,8 +263,6 @@ useEffect(() => {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-               
-
                 {/* Total Buses */}
                 <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-8 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-2xl">
                   <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -225,7 +288,8 @@ useEffect(() => {
                   </h3>
                   <p className="text-gray-600 font-medium">Searches Performed</p>
                 </div>
-                 {/* Total Users */}
+
+                {/* Total Users */}
                 <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-8 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-2xl">
                   <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,14 +313,6 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* Popular Buses Section */}
-       {/*   need update of this page 
-        <div className="py-20 bg-gradient-to-br from-purple-50 via-white to-purple-50">
-          <div className="container mx-auto px-4">
-            <PopularBuses />
-          </div>
-        </div>*/}
-
         {/* Footer CTA Section */}
         <div className="py-20 bg-gradient-to-r from-purple-600 to-purple-700 relative overflow-hidden">
           {/* Background Elements */}
@@ -273,8 +329,10 @@ useEffect(() => {
             <p className="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
               Explore now and experience the future of bus travel
             </p>
-            <button  onClick={goToAllBuses}
-             className="px-12 py-4 bg-white text-purple-600 font-bold text-lg rounded-full hover:bg-purple-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl">
+            <button 
+              onClick={goToAllBuses}
+              className="px-12 py-4 bg-white text-purple-600 font-bold text-lg rounded-full hover:bg-purple-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
+            >
               Explore Buses Now
             </button>
           </div>
@@ -287,13 +345,41 @@ useEffect(() => {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
         }
+        
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        
         .animate-spin-slow {
           animation: spin-slow 20s linear infinite;
+        }
+        
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        .animate-float-delay-1 {
+          animation: float 3s ease-in-out infinite;
+          animation-delay: 0.5s;
+        }
+        
+        .animate-float-delay-2 {
+          animation: float 3s ease-in-out infinite;
+          animation-delay: 1s;
+        }
+        
+        .animate-float-delay-3 {
+          animation: float 3s ease-in-out infinite;
+          animation-delay: 1.5s;
+        }
+        
+        .delay-1000 {
+          animation-delay: 1s;
         }
       `}</style>
     </div>
   );
 }
-
 
 export default Home;

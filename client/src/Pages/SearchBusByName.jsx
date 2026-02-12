@@ -1,5 +1,6 @@
 // SearchBusByName.jsx - Complete Code
-import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import BusCard from "./busCard";
 
@@ -10,6 +11,22 @@ export default function SearchBusByName() {
   const [buses, setBuses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const { route } = useParams(); // ✅ NOW route EXISTS
+
+  useEffect(() => {
+  if (!route) return;
+
+  // Decode URL-safe bus number
+  const decodedBusNumber = route
+    .replace(/-/g, " ")
+    .toUpperCase()
+    .trim();
+
+  setBusNumber(decodedBusNumber);
+
+  handleSearchByBusNumber(decodedBusNumber);
+}, [route]);
+
 
   const handleSearch = async () => {
     if (!query.trim()) {

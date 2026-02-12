@@ -22,7 +22,7 @@ function App() {
   return (
    <BrowserRouter>
   <Navbar />
-
+<div className="pt-16"></div>
   <Routes>
     <Route path="/" element={<Home />} />
 

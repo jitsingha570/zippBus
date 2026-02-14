@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaHome, FaQuestionCircle, FaUser, FaSignInAlt, FaBars, FaTimes } from 'react-icons/fa';
 
+import logo from '../assets/icons/zippbus.png';
 function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -15,14 +16,41 @@ function Navbar() {
       <div className="max-w-7xl  mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-2 group">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <div className="w-6 h-6 bg-gradient-to-r from-purple-600 to-purple-700 rounded transform rotate-12"></div>
-            </div>
-            <div className="text-2xl font-bold bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
-              ZippBus
-            </div>
-          </Link>
+{/* Logo */}
+<Link to="/" className="flex items-center space-x-3 group">
+
+  {/* Logo Container */}
+  <div className="relative">
+    
+    {/* Gradient Glow Ring */}
+    <div className="absolute inset-0 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500 rounded-xl blur-md opacity-70 group-hover:opacity-100 transition duration-300"></div>
+
+    {/* Logo Box */}
+    <div className="relative w-11 h-11 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-all duration-300">
+      <img
+        src="/zippbus.png"
+        alt="ZippBus Logo"
+        className="w-7 h-7 object-contain"
+      />
+    </div>
+  </div>
+
+{/* Text */}
+<div className="relative text-2xl font-extrabold tracking-wide text-white 
+                group-hover:scale-105 transition-all duration-300 overflow-hidden">
+
+  ZippBus
+
+  {/* Shine sweep effect */}
+  <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent 
+                   opacity-0 group-hover:opacity-100 animate-[shine_1.5s_linear]"></span>
+</div>
+
+
+
+</Link>
+
+
 
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center space-x-1">

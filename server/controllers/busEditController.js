@@ -2,39 +2,51 @@ const Bus = require("../models/busModel");
 const BusEditRequest = require("../models/BusEditRequestModel");
 
 // ============================
-// USER SIDE: CREATE EDIT REQUEST
+// USER: CREATE EDIT REQUEST
 // ============================
 const createEditRequest = async (req, res) => {
   try {
-    const { type, stoppageId, data } = req.body; // ADD | UPDATE | DELETE
-    const busId = req.params.busId;
+    const { actionType, stoppageId, requestedData } = req.body;
+    const { busId } = req.params;
+
+    if (!actionType) {
+      return res.status(400).json({
+        success: false,
+        message: "actionType is required",
+      });
+    }
 
     const request = await BusEditRequest.create({
       busId,
       requestedBy: req.user.id,
-      type,
+      actionType,
       stoppageId: stoppageId || null,
-      data: data || null,
+      requestedData: requestedData || null,
     });
 
-    res.json({
+    res.status(201).json({
       success: true,
       message: "Edit request submitted for admin approval",
       request,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Create Edit Request Error:", err.message);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
 // ============================
-// ADMIN SIDE: GET ALL PENDING REQUESTS
+// ADMIN: GET ALL PENDING REQUESTS
 // ============================
 const getPendingRequests = async (req, res) => {
   try {
     const requests = await BusEditRequest.find({ status: "PENDING" })
-      .populate("busId requestedBy");
+      .populate("busId", "busName busNumber")
+      .populate("requestedBy", "name email")
+      .sort({ createdAt: -1 });
 
     res.json({ success: true, requests });
   } catch (err) {
@@ -44,63 +56,101 @@ const getPendingRequests = async (req, res) => {
 };
 
 // ============================
-// ADMIN APPROVE REQUEST
+// ADMIN: APPROVE REQUEST
 // ============================
 const approveRequest = async (req, res) => {
   try {
     const request = await BusEditRequest.findById(req.params.id);
-    if (!request) return res.status(404).json({ message: "Request not found" });
+    if (!request) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    if (request.status !== "PENDING") {
+      return res.status(400).json({ message: "Request already processed" });
+    }
 
     const bus = await Bus.findById(request.busId);
-
-    if (!bus) return res.status(404).json({ message: "Bus not found" });
-
-    // APPLY THE CHANGE
-    if (request.type === "ADD") {
-      bus.stoppages.push(request.data);
+    if (!bus) {
+      return res.status(404).json({ message: "Bus not found" });
     }
 
-    if (request.type === "UPDATE") {
+    // ========================
+    // APPLY REQUEST
+    // ========================
+
+    // 🔹 BUS LEVEL UPDATE
+    if (request.actionType === "UPDATE_BUS") {
+      const forbiddenFields = ["busNumber", "owner", "_id"];
+      forbiddenFields.forEach(f => delete request.requestedData[f]);
+
+      Object.assign(bus, request.requestedData);
+    }
+
+    // 🔹 ADD STOPPAGE
+    if (request.actionType === "ADD_STOPPAGE") {
+      bus.stoppages.push(request.requestedData);
+    }
+
+    // 🔹 UPDATE STOPPAGE
+    if (request.actionType === "UPDATE_STOPPAGE") {
       const stoppage = bus.stoppages.id(request.stoppageId);
-      if (!stoppage)
+      if (!stoppage) {
         return res.status(404).json({ message: "Stoppage not found" });
-      Object.assign(stoppage, request.data);
+      }
+      Object.assign(stoppage, request.requestedData);
     }
 
-    if (request.type === "DELETE") {
+    // 🔹 DELETE STOPPAGE
+    if (request.actionType === "DELETE_STOPPAGE") {
       bus.stoppages = bus.stoppages.filter(
         s => s._id.toString() !== request.stoppageId.toString()
       );
     }
 
+    // Sort stoppages by order
     bus.stoppages.sort((a, b) => a.order - b.order);
     await bus.save();
 
     request.status = "APPROVED";
+    request.reviewedBy = req.user.id;
     await request.save();
 
-    res.json({ success: true, message: "Request approved and applied", bus });
+    res.json({
+      success: true,
+      message: "Request approved and applied successfully",
+      bus,
+    });
   } catch (err) {
-    console.error(err);
+    console.error("Approve Error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
 // ============================
-// ADMIN REJECT REQUEST
+// ADMIN: REJECT REQUEST
 // ============================
 const rejectRequest = async (req, res) => {
   try {
     const { remark } = req.body;
 
     const request = await BusEditRequest.findById(req.params.id);
-    if (!request) return res.status(404).json({ message: "Request not found" });
+    if (!request) {
+      return res.status(404).json({ message: "Request not found" });
+    }
+
+    if (request.status !== "PENDING") {
+      return res.status(400).json({ message: "Request already processed" });
+    }
 
     request.status = "REJECTED";
     request.adminRemark = remark || "Rejected by admin";
+    request.reviewedBy = req.user.id;
     await request.save();
 
-    res.json({ success: true, message: "Request rejected" });
+    res.json({
+      success: true,
+      message: "Request rejected successfully",
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -114,18 +164,22 @@ const getBusById = async (req, res) => {
   try {
     const bus = await Bus.findById(req.params.busId);
     if (!bus) {
-      return res.status(404).json({ success: false, message: "Bus not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Bus not found",
+      });
     }
+
     res.json({ success: true, bus });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
- 
+
 module.exports = {
   createEditRequest,
-  getPendingRequests, 
+  getPendingRequests,
   approveRequest,
   rejectRequest,
   getBusById,

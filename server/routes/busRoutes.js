@@ -1,6 +1,7 @@
 const express = require("express");
 const {
   requestBus,
+  requestBulkBus,
   getAllBusRequests,
   approveBusRequest,
   rejectBusRequest,
@@ -23,6 +24,7 @@ const router = express.Router();
 // USER ROUTES
 // -------------------------
 router.post("/request", verifyToken, requestBus);
+router.post("/request-bulk", verifyToken, requestBulkBus);
 router.get("/search", searchBus);
 router.get("/search-by-name-or-number", searchBusByNameOrNumber);
 router.get("/allbuses",  getAllBuses);

@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
+
 const verifyToken = require("../middlewares/verifyToken");
-const verifyAdminToken = require("../middlewares/verifyAdminToken"); // middleware to check admin
+const verifyAdminToken = require("../middlewares/verifyAdminToken");
 
 const {
   getBusById,
@@ -11,39 +12,83 @@ const {
   rejectRequest,
 } = require("../controllers/busEditController");
 
-// BASE: /api/bus-edit
+/*
+ BASE PATH: /api/bus-edit
+*/
 
-// Get bus details
-router.get("/:busId", verifyToken, getBusById);
+// ============================
+// ADMIN ROUTES (KEEP ON TOP)
+// ============================
 
-// User creates edit requests
-// Create an edit request. Body should include { type: 'ADD'|'UPDATE'|'DELETE', stoppageId?, data? }
-router.post("/:busId/stoppages", verifyToken, createEditRequest);
-// For convenience set the type and stoppageId from params then forward to createEditRequest
+// Get all pending edit requests
+router.get(
+  "/requests",
+  verifyAdminToken,
+  getPendingRequests
+);
+
+// Approve edit request
+router.put(
+  "/requests/:id/approve",
+  verifyAdminToken,
+  approveRequest
+);
+
+// Reject edit request
+router.put(
+  "/requests/:id/reject",
+  verifyAdminToken,
+  rejectRequest
+);
+
+// ============================
+// USER ROUTES
+// ============================
+
+// Get bus details (for edit page)
+router.get(
+  "/:busId",
+  verifyToken,
+  getBusById
+);
+
+// ----------------------------
+// CREATE EDIT REQUESTS
+// ----------------------------
+
+// ADD new stoppage
+router.post(
+  "/:busId/stoppages",
+  verifyToken,
+  (req, res, next) => {
+    req.body.actionType = "ADD";
+    next();
+  },
+  createEditRequest
+);
+
+// UPDATE existing stoppage
 router.put(
   "/:busId/stoppages/:sid",
   verifyToken,
   (req, res, next) => {
-    req.body.type = "UPDATE";
-    req.body.stoppageId = req.params.sid;
-    next();
-  },
-  createEditRequest
-);
-router.delete(
-  "/:busId/stoppages/:sid",
-  verifyToken,
-  (req, res, next) => {
-    req.body.type = "DELETE";
+    req.body.actionType = "UPDATE";
     req.body.stoppageId = req.params.sid;
     next();
   },
   createEditRequest
 );
 
-// Admin routes
-router.get("/requests/all",  verifyAdminToken, getPendingRequests); // get all pending requests
-router.put("/requests/:id/approve",  verifyAdminToken, approveRequest);
-router.put("/requests/:id/reject",  verifyAdminToken, rejectRequest);
+// DELETE stoppage
+router.delete(
+  "/:busId/stoppages/:sid",
+  verifyToken,
+  (req, res, next) => {
+    req.body.actionType = "DELETE";
+    req.body.stoppageId = req.params.sid;
+    next();
+  },
+  createEditRequest
+);
 
 module.exports = router;

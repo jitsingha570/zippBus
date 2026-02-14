@@ -1,10 +1,11 @@
-const Admin = require("../models/Admin");
-const PendingAdmin = require("../models/PendingAdmin");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const sendEmail = require("../utils/sendEmail");
+const Admin = require("../models/Admin"); // import Admin model
+const PendingAdmin = require("../models/PendingAdmin"); // import PendingAdmin model
+const bcrypt = require("bcryptjs"); // import bcryptjs for password hashing , it use to hash passwords before storing them in the database and to compare hashed passwords during login . (hash meaning converting plain text into a fixed-length string of characters which is typically a sequence of numbers and letters)
+const jwt = require("jsonwebtoken"); // import jsonwebtoken for generating JWT tokens for admin authentication 
+const sendEmail = require("../utils/sendEmail"); // import sendEmail utility for sending OTP emails 
 
 // STEP 1 — Request Admin Registration
+//this is an asynchronous function that handles the admin registration request
 exports.requestAdminRegistration = async (req, res) => {
   try {
     const { name, email, password } = req.body;

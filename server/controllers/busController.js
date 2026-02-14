@@ -561,6 +561,144 @@ const requestBus = async (req, res) => {
 
 
 
+//-------------------------
+//USER: Request to add bulk bus 
+//-------------------------
+const requestBulkBus = async (req, res) => {
+  try {
+    const { buses } = req.body;
+
+    if (!req.user?.id) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    if (!Array.isArray(buses) || buses.length === 0) {
+      return res.status(400).json({
+        error: "Buses array is required"
+      });
+    }
+
+    const normalizeBusNumber = (number) =>
+      number.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
+
+    const phoneRegex = /^(\+91)?[6-9]\d{9}$/;
+
+    const successBuses = [];
+    const skippedBuses = [];
+
+    for (const bus of buses) {
+      try {
+        const {
+          busName,
+          busNumber,
+          busType,
+          capacity,
+          fare,
+          amenities,
+          stoppages,
+          contactNumber1,
+          contactNumber2
+        } = bus;
+
+        // ===============================
+        // 1. Validate stoppages
+        // ===============================
+        if (!Array.isArray(stoppages) || stoppages.length < 3) {
+          skippedBuses.push({
+            busNumber,
+            reason: "Minimum 3 stoppages required"
+          });
+          continue;
+        }
+
+        // ===============================
+        // 2. Normalize bus number
+        // ===============================
+        const normalizedBusNumber = normalizeBusNumber(busNumber);
+
+        // ===============================
+        // 3. Duplicate check
+        // ===============================
+        const existingRequest = await BusRequest.findOne({
+          busNumber: normalizedBusNumber
+        });
+
+        const existingBus = await Bus.findOne({
+          busNumber: normalizedBusNumber
+        });
+
+        if (existingRequest || existingBus) {
+          skippedBuses.push({
+            busNumber,
+            reason: "Already exists"
+          });
+          continue;
+        }
+
+        // ===============================
+        // 4. Validate contact numbers
+        // ===============================
+        if (contactNumber1 && !phoneRegex.test(contactNumber1)) {
+          skippedBuses.push({
+            busNumber,
+            reason: "Invalid primary contact number"
+          });
+          continue;
+        }
+
+        if (contactNumber2 && !phoneRegex.test(contactNumber2)) {
+          skippedBuses.push({
+            busNumber,
+            reason: "Invalid secondary contact number"
+          });
+          continue;
+        }
+
+        // ===============================
+        // 5. Create request object
+        // ===============================
+        const newRequest = new BusRequest({
+          userId: req.user.id,
+          busName,
+          busNumber: normalizedBusNumber,
+          displayNumber: busNumber,
+          busType,
+          capacity,
+          fare,
+          amenities,
+          stoppages,
+          contactNumber1: contactNumber1 || undefined,
+          contactNumber2: contactNumber2 || undefined
+        });
+
+        await newRequest.save();
+        successBuses.push(newRequest);
+
+      } catch (err) {
+        skippedBuses.push({
+          busNumber: bus.busNumber,
+          reason: err.message
+        });
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      total: buses.length,
+      added: successBuses.length,
+      skipped: skippedBuses.length,
+      addedBuses: successBuses,
+      skippedDetails: skippedBuses
+    });
+
+  } catch (error) {
+    console.error("BULK ERROR 👉", error);
+    return res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
 
 
 
@@ -1026,6 +1164,7 @@ const searchBusByNameOrNumber = async (req, res) => {
 
 module.exports = {
   requestBus,
+  requestBulkBus,
   getMyBuses,
   updateBus,
   getBusDetails,

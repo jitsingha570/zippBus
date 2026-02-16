@@ -18,7 +18,7 @@ import BusesPage from "./Pages/BusesPage";
 import BusCard from "./Components/BusCard";
 import UpdateBus from "./Pages/UpdateBus";
 import BusDetails from "./Pages/BusDetails";
-
+{/* redeploy tigger*/}
 function App() {
   return (
    <BrowserRouter>

@@ -176,7 +176,7 @@ function Home() {
           {/* Hero Title */}
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight drop-shadow-lg">
             <span className="bg-gradient-to-r from-white via-purple-100 to-white bg-clip-text text-transparent">
-              Zipp
+              ZipX
             </span>
             <br />
             <span className="text-white drop-shadow-2xl">

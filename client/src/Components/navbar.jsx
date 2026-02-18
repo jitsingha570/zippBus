@@ -11,7 +11,7 @@ function Navbar() {
   };
 
   return (
-   <nav className="w-full fixed top-0 left-0 backdrop-blur-lg bg-black/30 text-white shadow-lg border-b border-white/20 z-50">
+   <nav className="w-full fixed top-0 left-0 backdrop-blur-lg bg-purple-900/40 text-white shadow-lg border-b border-white/20 z-50">
 
       <div className="max-w-7xl  mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
@@ -39,7 +39,7 @@ function Navbar() {
 <div className="relative text-2xl font-extrabold tracking-wide text-white 
                 group-hover:scale-105 transition-all duration-300 overflow-hidden">
 
-  ZippBus
+  ZipXBus
 
   {/* Shine sweep effect */}
   <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent 

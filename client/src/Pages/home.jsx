@@ -1,385 +1,516 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import SearchBus from './SearchBus';
 import SearchBusByName from './SearchBusByName';
 import PopularRoutes from './PopularRoutes';
-import PopularBuses from './PopularBuses';
 import { useNavigate } from 'react-router-dom';
-import imag1 from '../assets/images/img1.jpg';
-import imag2 from '../assets/images/img2.jpg';
-import imag3 from '../assets/images/img3.jpg';
-import imag4 from '../assets/images/img4.jpg';
-import imag5 from '../assets/images/img5.jpg';
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-function Home() {
-  const [isVisible, setIsVisible] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [counts, setCounts] = useState({
-    users: 0,
-    buses: 0,
-    searches: 0
-  });
+/* ── Scroll-reveal hook ── */
+function useReveal(threshold = 0.15) {
+  const ref = useRef(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return [ref, visible];
+}
+
+/* ── Animated Counter ── */
+function AnimatedCounter({ end, duration = 1800 }) {
+  const [count, setCount] = useState(0);
+  const [ref, visible] = useReveal(0.3);
+  useEffect(() => {
+    if (!visible || end === 0) return;
+    let startTime = null;
+    const animate = (now) => {
+      if (!startTime) startTime = now;
+      const p = Math.min((now - startTime) / duration, 1);
+      setCount(Math.floor(p * end));
+      if (p < 1) requestAnimationFrame(animate);
+    };
+    requestAnimationFrame(animate);
+  }, [visible, end, duration]);
+  return <span ref={ref}>{count.toLocaleString()}</span>;
+}
+
+/* ── Kolkata Cityscape SVG (mobile-optimised) ── */
+function KolkataCityscape() {
+  return (
+    <svg
+      viewBox="0 0 800 200"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ width: '100%', height: '100%', display: 'block' }}
+      aria-hidden="true"
+      preserveAspectRatio="xMidYMax slice"
+    >
+      <defs>
+        <linearGradient id="groundG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7c3aed" />
+          <stop offset="100%" stopColor="#5b21b6" />
+        </linearGradient>
+        <linearGradient id="rivG" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#c4b5fd" stopOpacity=".6" />
+          <stop offset="100%" stopColor="#8b5cf6" stopOpacity=".4" />
+        </linearGradient>
+      </defs>
+
+      {/* Sun */}
+      <circle cx="72" cy="34" r="28" fill="#fffbeb" className="sun-pulse" />
+      <circle cx="72" cy="34" r="18" fill="#fef3c7" />
+
+      {/* Clouds */}
+      <g className="cloud1">
+        <ellipse cx="260" cy="28" rx="55" ry="16" fill="white" opacity=".92" />
+        <ellipse cx="290" cy="18" rx="34" ry="14" fill="white" opacity=".9" />
+        <ellipse cx="234" cy="22" rx="27" ry="12" fill="white" opacity=".85" />
+      </g>
+      <g className="cloud2">
+        <ellipse cx="580" cy="22" rx="60" ry="17" fill="white" opacity=".88" />
+        <ellipse cx="615" cy="12" rx="38" ry="14" fill="white" opacity=".84" />
+        <ellipse cx="545" cy="16" rx="30" ry="12" fill="white" opacity=".8" />
+      </g>
+      <g className="cloud3">
+        <ellipse cx="750" cy="30" rx="46" ry="14" fill="white" opacity=".9" />
+        <ellipse cx="778" cy="20" rx="30" ry="12" fill="white" opacity=".86" />
+      </g>
+
+      {/* Buildings left */}
+      <rect x="0"   y="95"  width="28" height="65" fill="#ede9fe" rx="1" />
+      <rect x="30"  y="108" width="22" height="52" fill="white"   rx="1" opacity=".9" />
+      <rect x="54"  y="82"  width="34" height="78" fill="#f5f3ff" rx="1" />
+      <rect x="90"  y="98"  width="26" height="62" fill="white"   rx="1" opacity=".88" />
+      <rect x="118" y="88"  width="36" height="72" fill="#ede9fe" rx="1" />
+      <rect x="156" y="104" width="24" height="56" fill="white"   rx="1" opacity=".9" />
+
+      {/* Buildings right */}
+      <rect x="622" y="90"  width="30" height="70" fill="#ede9fe" rx="1" />
+      <rect x="654" y="102" width="24" height="58" fill="white"   rx="1" opacity=".9" />
+      <rect x="680" y="78"  width="36" height="82" fill="#f5f3ff" rx="1" />
+      <rect x="718" y="96"  width="28" height="64" fill="white"   rx="1" opacity=".88" />
+      <rect x="748" y="84"  width="32" height="76" fill="#ede9fe" rx="1" />
+      <rect x="782" y="106" width="18" height="54" fill="white"   rx="1" opacity=".9" />
+
+      {/* Howrah bridge deck */}
+      <rect x="140" y="128" width="520" height="8" fill="#7c3aed" rx="2" />
+
+      {/* Left tower */}
+      <rect x="192" y="68" width="18" height="68" fill="#6d28d9" rx="1" />
+      <rect x="187" y="64" width="28" height="8"  fill="#7c3aed" rx="1" />
+      <rect x="193" y="56" width="16" height="10" fill="#8b5cf6" rx="1" />
+
+      {/* Right tower */}
+      <rect x="592" y="68" width="18" height="68" fill="#6d28d9" rx="1" />
+      <rect x="587" y="64" width="28" height="8"  fill="#7c3aed" rx="1" />
+      <rect x="593" y="56" width="16" height="10" fill="#8b5cf6" rx="1" />
+
+      {/* Catenary */}
+      <path d="M201,72 Q400,102 601,72" fill="none" stroke="#6d28d9" strokeWidth="2" opacity=".7" />
+
+      {/* Hangers */}
+      {[250, 310, 370, 430, 490, 548].map((x) => (
+        <line key={x} x1={x} y1={x === 370 || x === 430 ? 97 : x === 310 || x === 490 ? 93 : 86}
+          x2={x} y2="128" stroke="#8b5cf6" strokeWidth=".8" opacity=".4" />
+      ))}
+
+      {/* Bridge lamps */}
+      {[220, 280, 340, 400, 460, 520, 580].map((x) => (
+        <circle key={x} cx={x} cy="126" r="3" fill="white" opacity=".9" />
+      ))}
+
+      {/* Window blinks */}
+      <rect x="9"   y="102" width="5" height="4" fill="#7c3aed" rx=".5" opacity=".35" className="wb wb0" />
+      <rect x="9"   y="112" width="5" height="4" fill="#7c3aed" rx=".5" opacity=".28" className="wb wb1" />
+      <rect x="60"  y="90"  width="5" height="4" fill="#7c3aed" rx=".5" opacity=".3"  className="wb wb2" />
+      <rect x="125" y="94"  width="5" height="4" fill="#7c3aed" rx=".5" opacity=".32" className="wb wb0" />
+      <rect x="688" y="86"  width="5" height="4" fill="#7c3aed" rx=".5" opacity=".3"  className="wb wb1" />
+      <rect x="688" y="98"  width="5" height="4" fill="#7c3aed" rx=".5" opacity=".28" className="wb wb2" />
+      <rect x="754" y="92"  width="5" height="4" fill="#7c3aed" rx=".5" opacity=".32" className="wb wb0" />
+
+      {/* River */}
+      <rect x="0" y="136" width="800" height="40" fill="url(#rivG)" opacity=".6" />
+      <ellipse cx="200" cy="148" rx="60" ry="3" fill="white" opacity=".25" className="rip rip0" />
+      <ellipse cx="500" cy="152" rx="70" ry="3" fill="white" opacity=".2"  className="rip rip1" />
+      <ellipse cx="700" cy="148" rx="50" ry="2.5" fill="white" opacity=".22" className="rip rip2" />
+
+      {/* Ground */}
+      <rect x="0" y="174" width="800" height="26" fill="url(#groundG)" />
+      <line x1="0" y1="176" x2="800" y2="176" stroke="#a78bfa" strokeWidth=".8" strokeDasharray="4 3" opacity=".5" />
+
+      {/* Tram 1 — left to right */}
+      <g className="tram1">
+        <rect x="-110" y="162" width="88" height="13" fill="#7c3aed" rx="3" />
+        <rect x="-108" y="164" width="84" height="10" fill="#6d28d9" rx="2" />
+        <rect x="-103" y="165" width="11" height="7" fill="white" rx="1.5" opacity=".92" />
+        <rect x="-88"  y="165" width="11" height="7" fill="white" rx="1.5" opacity=".88" />
+        <rect x="-73"  y="165" width="11" height="7" fill="white" rx="1.5" opacity=".88" />
+        <rect x="-58"  y="165" width="11" height="7" fill="white" rx="1.5" opacity=".88" />
+        <circle cx="-94" cy="175" r="5" fill="#5b21b6" stroke="white" strokeWidth="1" />
+        <circle cx="-38" cy="175" r="5" fill="#5b21b6" stroke="white" strokeWidth="1" />
+        <line x1="-66" y1="162" x2="-66" y2="158" stroke="#c4b5fd" strokeWidth="1.5" />
+        <circle cx="-22" cy="168" r="4" fill="white" opacity=".9" />
+      </g>
+
+      {/* Tram 2 — right to left */}
+      <g className="tram2">
+        <rect x="-90" y="164" width="72" height="11" fill="#8b5cf6" rx="3" />
+        <rect x="-88" y="166" width="68" height="8"  fill="#7c3aed" rx="2" />
+        <rect x="-84" y="167" width="9"  height="5"  fill="white"   rx="1" opacity=".88" />
+        <rect x="-71" y="167" width="9"  height="5"  fill="white"   rx="1" opacity=".85" />
+        <rect x="-58" y="167" width="9"  height="5"  fill="white"   rx="1" opacity=".85" />
+        <circle cx="-76" cy="175" r="4" fill="#5b21b6" stroke="white" strokeWidth="1" />
+        <circle cx="-28" cy="175" r="4" fill="#5b21b6" stroke="white" strokeWidth="1" />
+        <circle cx="-1"  cy="169" r="3" fill="white" opacity=".88" />
+      </g>
+    </svg>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   MAIN HOME COMPONENT
+══════════════════════════════════════════════ */
+export default function Home() {
+  const [heroVisible, setHeroVisible]     = useState(false);
+  const [counts, setCounts]               = useState({ users: 0, buses: 0, searches: 0 });
   const [countsLoading, setCountsLoading] = useState(true);
+  const [searchMode, setSearchMode]       = useState('route');
+  const navigate = useNavigate();
 
-  // Slider images - using actual images from assets folder
-  const sliderImages = [
-    imag1,
-    imag2,
-    imag3,
-    imag4,
-    imag5
-  ];
+  const [statsRef,  statsVisible]  = useReveal(0.12);
+  const [routesRef, routesVisible] = useReveal(0.08);
+  const [ctaRef,    ctaVisible]    = useReveal(0.12);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 100);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setHeroVisible(true), 80);
+    return () => clearTimeout(t);
   }, []);
 
-  // Auto-advance slider
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % sliderImages.length);
-    }, 5000); // Change slide every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [sliderImages.length]);
-
-  // Fetch counts from API
-  useEffect(() => {
-    const fetchCounts = async () => {
+    (async () => {
       try {
-        const [usersRes, busesRes, searchesRes] = await Promise.all([
+        const [u, b, s] = await Promise.all([
           axios.get(`${API_URL}/api/counts/users`),
           axios.get(`${API_URL}/api/counts/buses`),
-          axios.get(`${API_URL}/api/counts/search`)
+          axios.get(`${API_URL}/api/counts/search`),
         ]);
-
         setCounts({
-          users: usersRes.data.totalUsers || 0,
-          buses: busesRes.data.totalBuses || 0,
-          searches: searchesRes.data.totalSearches || 0
+          users:   u.data.totalUsers   || 0,
+          buses:   b.data.totalBuses   || 0,
+          searches: s.data.totalSearches || 0,
         });
-
-      } catch (error) {
-        console.error('Error fetching counts:', error);
-        setCounts({ users: 0, buses: 0, searches: 0 });
-      } finally {
-        setCountsLoading(false);
-      }
-    };
-
-    fetchCounts();
+      } catch { /* silent */ }
+      finally  { setCountsLoading(false); }
+    })();
   }, []);
 
-  // Animated counter component
-  const AnimatedCounter = ({ end, duration = 2000 }) => {
-    const [count, setCount] = useState(0);
+  const fadeUp = (visible, delay = 0) => ({
+    opacity:   visible ? 1 : 0,
+    transform: visible ? 'translateY(0)' : 'translateY(28px)',
+    transition: `opacity 0.7s ease ${delay}s, transform 0.7s ease ${delay}s`,
+  });
 
-    useEffect(() => {
-      if (end === 0) return;
-      
-      let startTime = null;
-      const startCount = 0;
-
-      const animate = (currentTime) => {
-        if (!startTime) startTime = currentTime;
-        const progress = Math.min((currentTime - startTime) / duration, 1);
-        
-        setCount(Math.floor(progress * end));
-
-        if (progress < 1) {
-          requestAnimationFrame(animate);
-        }
-      };
-
-      requestAnimationFrame(animate);
-    }, [end, duration]);
-
-    return <span>{count.toLocaleString()}</span>;
-  };
-
-  const navigate = useNavigate();
-  const goToAllBuses = () => {
-    navigate("/allbuses");
+  /* ── inline styles (grouped for readability) ── */
+  const S = {
+    hero: {
+      minHeight: '100svh',
+      background: 'linear-gradient(155deg,#ffffff 0%,#f5f3ff 55%,#ede9fe 100%)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: 'clamp(3.5rem,8vw,5.5rem) 1rem clamp(2rem,5vw,3.5rem)',
+      position: 'relative', overflow: 'hidden',
+    },
+    blob1: {
+      position: 'absolute', top: '-80px', right: '-80px',
+      width: 'clamp(180px,35vw,320px)', height: 'clamp(180px,35vw,320px)',
+      borderRadius: '50%',
+      background: 'radial-gradient(circle,#ede9fe,transparent 70%)',
+      pointerEvents: 'none',
+    },
+    blob2: {
+      position: 'absolute', bottom: '-60px', left: '-60px',
+      width: 'clamp(150px,28vw,260px)', height: 'clamp(150px,28vw,260px)',
+      borderRadius: '50%',
+      background: 'radial-gradient(circle,#ddd6fe,transparent 70%)',
+      pointerEvents: 'none',
+    },
+    cityscapeWrap: {
+      position: 'absolute', bottom: 0, left: 0, right: 0,
+      height: 'clamp(120px,30vw,260px)',
+      opacity: 0.28, pointerEvents: 'none', zIndex: 0,
+    },
+    badge: {
+      display: 'inline-block',
+      background: 'linear-gradient(135deg,#7c3aed,#a78bfa)',
+      borderRadius: '8px', padding: '4px 14px', marginBottom: '1rem',
+    },
+    h1: {
+      fontSize: 'clamp(2.4rem,9vw,5.8rem)',
+      fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.05,
+      marginBottom: '.75rem',
+      background: 'linear-gradient(135deg,#5b21b6 0%,#7c3aed 50%,#a78bfa 100%)',
+      WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
+    },
+    heroP: {
+      fontSize: 'clamp(.88rem,2.5vw,1.1rem)', color: '#6d28d9',
+      fontWeight: 300, maxWidth: '420px', margin: '0 auto 2rem', lineHeight: 1.7,
+    },
+    searchCard: {
+      width: '100%', maxWidth: '780px', position: 'relative', zIndex: 1,
+      background: 'white', borderRadius: 'clamp(14px,3vw,20px)',
+      border: '1.5px solid #ede9fe',
+      padding: 'clamp(1rem,4vw,2rem) clamp(.9rem,4vw,2rem)',
+      boxShadow: '0 4px 24px rgba(124,58,237,.09)',
+      ...fadeUp(heroVisible, 0.2),
+    },
+    tabWrap: {
+      display: 'inline-flex', padding: '4px', borderRadius: '999px',
+      background: '#f5f3ff', border: '1px solid #e9d5ff',
+      marginBottom: '1.2rem', gap: '4px', flexWrap: 'wrap',
+    },
+    tabActive: {
+      border: 'none', borderRadius: '999px',
+      padding: 'clamp(.5rem,2vw,.7rem) clamp(.8rem,2.5vw,1.2rem)',
+      background: 'linear-gradient(135deg,#7c3aed,#a78bfa)',
+      color: '#fff', fontWeight: 600, cursor: 'pointer',
+      fontSize: 'clamp(.78rem,2vw,.88rem)',
+      transition: 'all .22s ease',
+      boxShadow: '0 8px 20px rgba(124,58,237,.22)',
+      fontFamily: 'inherit', whiteSpace: 'nowrap',
+    },
+    tabInactive: {
+      border: 'none', borderRadius: '999px',
+      padding: 'clamp(.5rem,2vw,.7rem) clamp(.8rem,2.5vw,1.2rem)',
+      background: 'transparent', color: '#6d28d9',
+      fontWeight: 600, cursor: 'pointer',
+      fontSize: 'clamp(.78rem,2vw,.88rem)',
+      transition: 'all .22s ease',
+      fontFamily: 'inherit', whiteSpace: 'nowrap',
+    },
   };
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 ">
-      
-      {/* Hero Section with Slider Background */}
-      <div className="relative w-full min-h-screen flex flex-col justify-center items-center px-4 overflow-hidden pt-20">
-        {/* Slider Background Container */}
-        <div className="absolute inset-0 overflow-hidden">
-          {/* Slider Images */}
-          {sliderImages.map((image, index) => (
-            <div
-              key={index}
-              className={`absolute inset-0 transition-opacity duration-8000 ease-in-out ${
-                index === currentSlide ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              {/* Background Image */}
-              <img 
-                src={image}
-                alt={`Slide ${index + 1}`}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-              
-              {/* Blur and Overlay Effect */}
-              <div className="absolute inset-0 backdrop-blur-xs bg-white/20" />
-              
-              {/* Additional gradient overlay for better text readability */}
-              <div className="absolute inset-0 bg-gradient-to-b from-purple-900/20 via-transparent to-purple-900/30" />
-            </div>
-          ))}
+    <div style={{ fontFamily: "'Outfit','Segoe UI',sans-serif", background: '#fff', overflowX: 'hidden' }}>
 
-          {/* Additional Decorative Elements */}
-          <div className="absolute inset-0 opacity-80">
-            {/* Large Purple Circles */}
-            <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full opacity-80 animate-pulse"></div>
-            <div className="absolute -bottom-32 -left-32 w-64 h-64 bg-gradient-to-br from-purple-500 to-purple-700 rounded-full opacity-80 animate-pulse delay-1000"></div>
-            
-            {/* Small Floating Elements */}
-            <div className="absolute top-1/4 left-1/4 w-4 h-4 bg-white rounded-full opacity-80 animate-float"></div>
-            <div className="absolute top-1/3 right-1/3 w-3 h-3 bg-white rounded-full opacity-80 animate-float-delay-1"></div>
-            <div className="absolute bottom-1/3 left-1/5 w-2 h-2 bg-white rounded-full opacity-80 animate-float-delay-2"></div>
-            <div className="absolute bottom-1/4 right-1/4 w-5 h-5 bg-white rounded-full opacity-85 animate-float-delay-3"></div>
-            
-            {/* Geometric Shapes */}
-            <div className="absolute top-20 right-20 w-16 h-16 border-2 border-white/40 rounded-lg rotate-45 opacity-80 animate-spin-slow"></div>
-            <div className="absolute bottom-32 left-16 w-12 h-12 border border-white/50 rotate-12 opacity-80"></div>
+      {/* ═══════ HERO ═══════ */}
+      <section style={S.hero}>
+        <div style={S.blob1} />
+        <div style={S.blob2} />
+
+        {/* Cityscape pinned to bottom of hero */}
+        <div style={S.cityscapeWrap}>
+          <KolkataCityscape />
+        </div>
+
+        {/* Brand */}
+        <div style={{ textAlign: 'center', position: 'relative', zIndex: 1, ...fadeUp(heroVisible, 0) }}>
+          <div style={S.badge}>
+            <span style={{ color: '#fff', fontSize: '.68rem', letterSpacing: '.2em', fontWeight: 600, textTransform: 'uppercase' }}>
+              Kolkata · City of Joy
+            </span>
+          </div>
+          <h1 style={S.h1}>ZipX Bus</h1>
+          <p style={S.heroP}>Find buses across Kolkata — fast, reliable, made for your journey.</p>
+        </div>
+
+        {/* Search card */}
+        <div style={S.searchCard}>
+          {/* Tab toggle */}
+          <div style={S.tabWrap}>
+            {[
+              { key: 'route', label: 'Search by Route' },
+              { key: 'name',  label: 'Search by Bus Name' },
+            ].map((mode) => (
+              <button
+                key={mode.key}
+                onClick={() => setSearchMode(mode.key)}
+                style={searchMode === mode.key ? S.tabActive : S.tabInactive}
+              >
+                {mode.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search panels */}
+          <div style={{ minHeight: 'clamp(160px,30vw,220px)' }}>
+            {searchMode === 'route' ? <SearchBus compact /> : <SearchBusByName compact />}
           </div>
         </div>
 
-        {/* Slider Navigation Dots */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex gap-3">
-          {sliderImages.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              className={`transition-all duration-300 rounded-full ${
-                index === currentSlide 
-                  ? 'w-8 h-3 bg-white shadow-lg' 
-                  : 'w-3 h-3 bg-white/50 hover:bg-white/80'
-              }`}
-              aria-label={`Go to slide ${index + 1}`}
-            />
-          ))}
-        </div>
-
-        {/* Main Content */}
-        <div className={`text-center z-10 transform transition-all duration-1000 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
-        }`}>
-          {/* Hero Title */}
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight drop-shadow-lg">
-            <span className="bg-gradient-to-r from-white via-purple-100 to-white bg-clip-text text-transparent">
-              ZipX
-            </span>
-            <br />
-            <span className="text-white drop-shadow-2xl">
-              Bus
-            </span>
-          </h1>
-          
-          {/* Subtitle */}
-          <p className="text-xl md:text-2xl text-white font-light max-w-3xl mx-auto mb-12 leading-relaxed drop-shadow-lg">
-            Experience seamless bus searching with our modern platform. 
-            <br className="hidden md:block" />
-            Fast, reliable, and designed for your comfort.
+        {/* Scroll hint */}
+        <div style={{ marginTop: '2rem', textAlign: 'center', position: 'relative', zIndex: 1, ...fadeUp(heroVisible, 0.48) }}>
+          <div className="scroll-hint">
+            <div className="scroll-dot" />
+          </div>
+          <p style={{ color: '#a78bfa', fontSize: '.65rem', marginTop: '6px', letterSpacing: '.14em' }}>
+            SCROLL TO EXPLORE
           </p>
-
-          {/* Feature Pills */}
-          <div className="flex flex-wrap justify-center gap-4 mb-16">
-            <span className="px-6 py-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg text-purple-700 font-medium border border-white/20 hover:shadow-xl transition-all duration-300 hover:scale-105 hover:bg-white">
-              ✨ Instant Searching
-            </span>
-            <span className="px-6 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg text-purple-800 font-medium hover:shadow-xl transition-all duration-300 hover:scale-105 hover:bg-white/90">
-              🚌 Premium Buses
-            </span>
-            <span className="px-6 py-3 bg-white/90 backdrop-blur-sm rounded-full shadow-lg text-purple-700 font-medium border border-white/20 hover:shadow-xl transition-all duration-300 hover:scale-105 hover:bg-white">
-              💜 Best Prices
-            </span>
-          </div>
         </div>
+      </section>
 
-        {/* Search Container */}
-        <div className={`w-full max-w-6xl z-10 transform transition-all duration-1000 delay-300 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
-        }`}>
-          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/40 p-8 md:p-12 hover:shadow-purple-200/50 transition-all duration-500">
-            <SearchBus />
-          </div>
-        </div>
-       
-        {/* Search bus by name or number */}
-        <div className={`w-full max-w-6xl z-10 mt-6 transform transition-all duration-1000 delay-400 ${
-          isVisible ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
-        }`}>
-          <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/40 p-8 md:p-12 hover:shadow-purple-200/50 transition-all duration-500">
-            <SearchBusByName />
-          </div>
-        </div>
+      {/* ═══════ WHY CHOOSE US ═══════ */}
+      <section style={{
+        background: 'linear-gradient(135deg,#7c3aed,#6d28d9)',
+        padding: '3.5rem 1rem 2rem', textAlign: 'center',
+      }}>
+        <h2 style={{ fontSize: 'clamp(1.4rem,4vw,2.4rem)', fontWeight: 700, color: '#fff', marginBottom: '.4rem', letterSpacing: '-.02em' }}>
+          Why Choose Us?
+        </h2>
+        <p style={{ color: '#ddd6fe', fontSize: 'clamp(.85rem,2vw,.98rem)', fontWeight: 300 }}>
+          Trusted by thousands of Kolkata commuters every day
+        </p>
+      </section>
 
-        {/* Bottom Wave */}
-        <div className="absolute bottom-0 left-0 w-full">
-          <svg viewBox="0 0 1440 120" className="w-full h-20 fill-current text-white">
-            <path d="M0,64L48,74.7C96,85,192,107,288,101.3C384,96,480,64,576,58.7C672,53,768,75,864,85.3C960,96,1056,96,1152,85.3C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"></path>
-          </svg>
-        </div>
-      </div>
-
-      {/* Content Sections */}
-      <div className="relative bg-white">
-        {/* Decorative Top Section */}
-        <div className="w-full py-16 bg-gradient-to-r from-purple-600 to-purple-700 relative overflow-hidden">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: `radial-gradient(circle at 20% 50%, white 1px, transparent 1px),
-                               radial-gradient(circle at 80% 50%, white 1px, transparent 1px)`,
-              backgroundSize: '60px 60px'
-            }}></div>
-          </div>
-          
-          <div className="container mx-auto px-4 text-center relative z-10">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Why Choose Us?
-            </h2>
-            <p className="text-xl text-purple-100 max-w-2xl mx-auto">
-              Join millions of happy travelers who trust us for their journey
-            </p>
-          </div>
-        </div>
-
-        {/* Stats Section */}
-        <div className="py-16 bg-gradient-to-b from-purple-50 to-white">
-          <div className="container mx-auto px-4">
-            {countsLoading ? (
-              <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-600 border-t-transparent"></div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-                {/* Total Buses */}
-                <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-8 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-2xl">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
-                    </svg>
+      {/* ═══════ STATS ═══════ */}
+      <section ref={statsRef} style={{ background: '#f5f3ff', padding: '2.5rem 1rem 4rem', ...fadeUp(statsVisible, 0) }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+          {countsLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+              <div style={{
+                width: '40px', height: '40px',
+                border: '3px solid #ede9fe', borderTopColor: '#7c3aed',
+                borderRadius: '50%', animation: 'spin .8s linear infinite',
+              }} />
+            </div>
+          ) : (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))',
+              gap: '1rem',
+            }}>
+              {[
+                { icon: '🚌', count: counts.buses,    label: 'Buses Available',    color: '#7c3aed', delay: 0    },
+                { icon: '🔍', count: counts.searches, label: 'Searches Performed', color: '#5b21b6', delay: 0.1  },
+                { icon: '👥', count: counts.users,    label: 'Contributors',        color: '#6d28d9', delay: 0.2  },
+              ].map(({ icon, count, label, color, delay }) => (
+                <div
+                  key={label}
+                  style={{
+                    background: '#fff', border: '1.5px solid #ede9fe',
+                    borderRadius: '16px',
+                    padding: 'clamp(1rem,3vw,1.75rem) clamp(.9rem,2.5vw,1.4rem)',
+                    textAlign: 'center', cursor: 'default',
+                    transition: 'transform .28s, box-shadow .28s',
+                    ...fadeUp(statsVisible, delay),
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.transform = 'translateY(-4px)';
+                    e.currentTarget.style.boxShadow = '0 10px 30px rgba(124,58,237,.13)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <div style={{ fontSize: 'clamp(1.6rem,4vw,2rem)', marginBottom: '.6rem' }}>{icon}</div>
+                  <div style={{ fontSize: 'clamp(1.8rem,5vw,2.6rem)', fontWeight: 800, color, marginBottom: '.25rem' }}>
+                    <AnimatedCounter end={count} />
                   </div>
-                  <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
-                    <AnimatedCounter end={counts.buses} />
-                  </h3>
-                  <p className="text-gray-600 font-medium">Buses Available</p>
+                  <div style={{ color: '#8b5cf6', fontSize: 'clamp(.78rem,2vw,.88rem)' }}>{label}</div>
                 </div>
-
-                {/* Total Searches */}
-                <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-8 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-2xl">
-                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
-                    <AnimatedCounter end={counts.searches} />
-                  </h3>
-                  <p className="text-gray-600 font-medium">Searches Performed</p>
-                </div>
-
-                {/* Total Users */}
-                <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-8 text-center transform hover:scale-105 transition-all duration-300 hover:shadow-2xl">
-                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
-                    <AnimatedCounter end={counts.users} />
-                  </h3>
-                  <p className="text-gray-600 font-medium">Contributors</p>
-                </div>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
+      </section>
 
-        {/* Popular Routes Section */}
-        <div className="py-20 bg-white">
-          <div className="container mx-auto px-4">
-            <PopularRoutes />
-          </div>
+      {/* ═══════ POPULAR ROUTES ═══════ */}
+      <section ref={routesRef} style={{ background: '#fff', padding: 'clamp(3rem,6vw,5rem) 1rem', ...fadeUp(routesVisible, 0) }}>
+        <div className="container mx-auto">
+          <PopularRoutes />
         </div>
+      </section>
 
-        {/* Footer CTA Section */}
-        <div className="py-20 bg-gradient-to-r from-purple-600 to-purple-700 relative overflow-hidden">
-          {/* Background Elements */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-10 left-10 w-32 h-32 border border-white rounded-full"></div>
-            <div className="absolute bottom-10 right-10 w-24 h-24 border border-white rounded-lg rotate-45"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-40 h-40 border-2 border-white rounded-full opacity-20"></div>
-          </div>
-          
-          <div className="container mx-auto px-4 text-center relative z-10">
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              Ready for Your Next Journey?
-            </h2>
-            <p className="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
-              Explore now and experience the future of bus travel
-            </p>
-            <button 
-              onClick={goToAllBuses}
-              className="px-12 py-4 bg-white text-purple-600 font-bold text-lg rounded-full hover:bg-purple-50 hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl"
-            >
-              Explore Buses Now
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* ═══════ CTA ═══════ */}
+      <section ref={ctaRef} style={{
+        background: 'linear-gradient(135deg,#6d28d9,#7c3aed,#8b5cf6)',
+        padding: 'clamp(3rem,7vw,5rem) 1rem', textAlign: 'center',
+        position: 'relative', overflow: 'hidden',
+        ...fadeUp(ctaVisible, 0),
+      }}>
+        <div style={{ position: 'absolute', top: '-60px', left: '-60px', width: '180px', height: '180px', borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: '-40px', right: '-40px', width: '150px', height: '150px', borderRadius: '50%', border: '1px solid rgba(255,255,255,.07)', pointerEvents: 'none' }} />
+        <h2 style={{ fontSize: 'clamp(1.4rem,4vw,2.4rem)', fontWeight: 700, color: '#fff', marginBottom: '.8rem', letterSpacing: '-.02em', position: 'relative', zIndex: 1 }}>
+          Ready for Your Next Journey?
+        </h2>
+        <p style={{ color: '#ddd6fe', fontSize: 'clamp(.85rem,2vw,.98rem)', marginBottom: '2rem', position: 'relative', zIndex: 1 }}>
+          Explore buses and plan your next Kolkata adventure
+        </p>
+        <button
+          onClick={() => navigate('/allbuses')}
+          style={{
+            padding: 'clamp(11px,2.5vw,14px) clamp(28px,6vw,46px)',
+            background: '#fff', color: '#6d28d9',
+            fontWeight: 700, fontSize: 'clamp(.88rem,2vw,1rem)',
+            borderRadius: '999px', border: 'none', cursor: 'pointer',
+            fontFamily: 'inherit', position: 'relative', zIndex: 1,
+            transition: 'transform .18s, box-shadow .18s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.04)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,.18)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)';    e.currentTarget.style.boxShadow = 'none'; }}
+        >
+          Explore Buses Now
+        </button>
+      </section>
 
-      {/* Custom Styles */}
-      <style jsx>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+      {/* ═══════ GLOBAL STYLES ═══════ */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+
+        /* Only animate when the device allows it — saves battery & prevents jank on low-end phones */
+        @media (prefers-reduced-motion: no-preference) {
+          .sun-pulse { animation: sunP 5s ease-in-out infinite; }
+          .cloud1 { animation: cd1 90s linear infinite; }
+          .cloud2 { animation: cd2 110s linear infinite; }
+          .cloud3 { animation: cd1 80s linear infinite; animation-delay: -25s; }
+          .tram1  { animation: t1A 28s linear infinite; }
+          .tram2  { animation: t2A 40s linear infinite; animation-delay: -16s; }
+          .wb     { animation: wbA 5s ease-in-out infinite; }
+          .rip    { animation: ripA 4s ease-in-out infinite; }
+          .scroll-dot { animation: sdA 1.8s ease-in-out infinite; }
         }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
+
+        @keyframes sunP  { 0%,100%{opacity:1} 50%{opacity:.82} }
+        @keyframes cd1   { from{transform:translateX(0)} to{transform:translateX(160px)} }
+        @keyframes cd2   { from{transform:translateX(0)} to{transform:translateX(-120px)} }
+        @keyframes t1A   { from{transform:translateX(-120px)} to{transform:translateX(110vw)} }
+        @keyframes t2A   {
+          from { transform: translateX(110vw)  scaleX(-1); }
+          to   { transform: translateX(-120px) scaleX(-1); }
         }
-        
-        .animate-spin-slow {
-          animation: spin-slow 20s linear infinite;
+        @keyframes wbA   { 0%,88%,100%{opacity:.4} 93%{opacity:.07} }
+        @keyframes ripA  { 0%,100%{opacity:.3} 50%{opacity:.08} }
+        @keyframes sdA   { 0%{transform:translateY(0);opacity:1} 80%{transform:translateY(16px);opacity:0} 100%{transform:translateY(0);opacity:0} }
+        @keyframes spin  { to{transform:rotate(360deg)} }
+
+        .wb0 { animation-delay: 0s; }
+        .wb1 { animation-delay: 1.6s; }
+        .wb2 { animation-delay: 3.2s; }
+        .rip0 { animation-delay: 0s; }
+        .rip1 { animation-delay: 1.4s; }
+        .rip2 { animation-delay: 2.8s; }
+
+        .scroll-hint {
+          width: 24px; height: 40px;
+          border: 2px solid #c4b5fd; border-radius: 12px;
+          margin: 0 auto; display: flex;
+          align-items: flex-start; justify-content: center; padding-top: 6px;
         }
-        
-        .animate-float {
-          animation: float 3s ease-in-out infinite;
+        .scroll-dot {
+          width: 4px; height: 4px;
+          background: #7c3aed; border-radius: 50%;
         }
-        
-        .animate-float-delay-1 {
-          animation: float 3s ease-in-out infinite;
-          animation-delay: 0.5s;
-        }
-        
-        .animate-float-delay-2 {
-          animation: float 3s ease-in-out infinite;
-          animation-delay: 1s;
-        }
-        
-        .animate-float-delay-3 {
-          animation: float 3s ease-in-out infinite;
-          animation-delay: 1.5s;
-        }
-        
-        .delay-1000 {
-          animation-delay: 1s;
-        }
+
+        /* Prevent double-tap zoom on buttons for iOS */
+        button { touch-action: manipulation; }
       `}</style>
     </div>
   );
 }
-
-export default Home;

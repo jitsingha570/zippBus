@@ -5,7 +5,7 @@ import BusCard from "./busCard";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-function SearchBus() {
+function SearchBus({ compact = false }) {
   const { route } = useParams();
   const navigate = useNavigate();
   
@@ -14,6 +14,10 @@ function SearchBus() {
   const [results, setResults] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [activeField, setActiveField] = useState(null);
+  const [allStops, setAllStops] = useState([]);
+  const [toRecommendationsByFrom, setToRecommendationsByFrom] = useState({});
+  const [popularRoutes, setPopularRoutes] = useState([]);
 
   // Auto-search when URL changes
   useEffect(() => {
@@ -30,6 +34,92 @@ function SearchBus() {
 
     handleSearch(decodedFrom, decodedTo);
   }, [route]);
+
+  useEffect(() => {
+    const fetchRecommendations = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/buses/allbuses`);
+        const buses = Array.isArray(res.data) ? res.data : res.data?.buses || [];
+
+        const stopCounts = new Map();
+        const routeCounts = new Map();
+        const toMap = new Map();
+
+        buses.forEach((bus) => {
+          const rawStops = (bus.route?.stoppages || bus.stoppages || [])
+            .map((stop) => String(stop?.name || "").trim())
+            .filter(Boolean);
+
+          const orderedStops = rawStops.map((name) => ({
+            label: formatStopName(name),
+            normalized: normalizeStopName(name),
+          }));
+
+          orderedStops.forEach(({ normalized, label }) => {
+            if (!stopCounts.has(normalized)) {
+              stopCounts.set(normalized, { label, normalized, count: 0 });
+            }
+            stopCounts.get(normalized).count += 1;
+          });
+
+          for (let i = 0; i < orderedStops.length; i += 1) {
+            for (let j = i + 1; j < orderedStops.length; j += 1) {
+              const fromStop = orderedStops[i];
+              const toStop = orderedStops[j];
+              const pairKey = `${fromStop.normalized}__${toStop.normalized}`;
+
+              routeCounts.set(pairKey, {
+                from: fromStop.label,
+                to: toStop.label,
+                fromNormalized: fromStop.normalized,
+                toNormalized: toStop.normalized,
+                count: (routeCounts.get(pairKey)?.count || 0) + 1,
+              });
+
+              if (!toMap.has(fromStop.normalized)) {
+                toMap.set(fromStop.normalized, new Map());
+              }
+
+              const currentTargets = toMap.get(fromStop.normalized);
+              currentTargets.set(toStop.normalized, {
+                label: toStop.label,
+                normalized: toStop.normalized,
+                count: (currentTargets.get(toStop.normalized)?.count || 0) + 1,
+              });
+            }
+          }
+        });
+
+        const sortedStops = Array.from(stopCounts.values()).sort((a, b) => {
+          if (b.count !== a.count) return b.count - a.count;
+          return a.label.localeCompare(b.label);
+        });
+
+        const sortedPopularRoutes = Array.from(routeCounts.values())
+          .sort((a, b) => {
+            if (b.count !== a.count) return b.count - a.count;
+            return `${a.from}-${a.to}`.localeCompare(`${b.from}-${b.to}`);
+          })
+          .slice(0, 6);
+
+        const serializedToMap = {};
+        toMap.forEach((targets, key) => {
+          serializedToMap[key] = Array.from(targets.values()).sort((a, b) => {
+            if (b.count !== a.count) return b.count - a.count;
+            return a.label.localeCompare(b.label);
+          });
+        });
+
+        setAllStops(sortedStops);
+        setPopularRoutes(sortedPopularRoutes);
+        setToRecommendationsByFrom(serializedToMap);
+      } catch (err) {
+        console.error("Failed to load route recommendations:", err);
+      }
+    };
+
+    fetchRecommendations();
+  }, []);
 
   // Search function
   const handleSearch = async (fromValue, toValue) => {
@@ -97,10 +187,49 @@ function SearchBus() {
     }
   };
 
+  const normalizeStopName = (value) => String(value || "").trim().toLowerCase();
+
+  const formatStopName = (value) =>
+    String(value || "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+
+  const getSuggestions = (value, source, excludedValue = "") => {
+    const normalizedValue = normalizeStopName(value);
+    const normalizedExcludedValue = normalizeStopName(excludedValue);
+
+    return source
+      .filter((item) => item.normalized !== normalizedExcludedValue)
+      .filter((item) =>
+        normalizedValue ? item.normalized.includes(normalizedValue) : true
+      )
+      .slice(0, 6);
+  };
+
+  const fromSuggestions = getSuggestions(from, allStops, to);
+  const toSource = toRecommendationsByFrom[normalizeStopName(from)] || allStops;
+  const toSuggestions = getSuggestions(to, toSource, from);
+
+  const applySuggestion = (field, value) => {
+    if (field === "from") {
+      setFrom(value);
+    } else {
+      setTo(value);
+    }
+    setActiveField(null);
+  };
+
+  const applyRouteRecommendation = (recommendedFrom, recommendedTo) => {
+    setFrom(recommendedFrom);
+    setTo(recommendedTo);
+    setError("");
+  };
+
   return (
     <div className="w-full space-y-6">
       {/* Search Form */}
-      <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6 md:p-8">
+      <div className={`${compact ? "" : "bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6 md:p-8"}`}>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
           {/* From Input */}
           <div className="relative">
@@ -113,6 +242,8 @@ function SearchBus() {
                 placeholder="Enter departure city"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
+                onFocus={() => setActiveField("from")}
+                onBlur={() => setTimeout(() => setActiveField(null), 120)}
                 onKeyPress={handleKeyPress}
                 className="w-full pl-12 pr-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 text-gray-700 placeholder-gray-400"
               />
@@ -123,6 +254,21 @@ function SearchBus() {
                 </svg>
               </div>
             </div>
+            {activeField === "from" && fromSuggestions.length > 0 && (
+              <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-2xl">
+                {fromSuggestions.map((item) => (
+                  <button
+                    key={item.normalized}
+                    type="button"
+                    onMouseDown={() => applySuggestion("from", item.label)}
+                    className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-purple-50"
+                  >
+                    <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                    <span className="text-xs text-purple-400">{item.count} buses</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Swap Button */}
@@ -149,6 +295,8 @@ function SearchBus() {
                 placeholder="Enter destination city"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
+                onFocus={() => setActiveField("to")}
+                onBlur={() => setTimeout(() => setActiveField(null), 120)}
                 onKeyPress={handleKeyPress}
                 className="w-full pl-12 pr-4 py-3 border-2 border-purple-200 rounded-xl focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-200 transition-all duration-300 text-gray-700 placeholder-gray-400"
               />
@@ -159,6 +307,21 @@ function SearchBus() {
                 </svg>
               </div>
             </div>
+            {activeField === "to" && toSuggestions.length > 0 && (
+              <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-2xl">
+                {toSuggestions.map((item) => (
+                  <button
+                    key={item.normalized}
+                    type="button"
+                    onMouseDown={() => applySuggestion("to", item.label)}
+                    className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-purple-50"
+                  >
+                    <span className="text-sm font-medium text-gray-700">{item.label}</span>
+                    <span className="text-xs text-purple-400">{item.count} matches</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Action Buttons Container */}
@@ -188,7 +351,7 @@ function SearchBus() {
         </div>
 
         {/* Clear Button - Separate Row */}
-        <div className="mt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             onClick={clearSearch}
             className="px-6 py-2 border-2 border-purple-200 text-purple-600 rounded-xl hover:bg-purple-50 transition-all duration-300 font-semibold flex items-center space-x-2"
@@ -198,8 +361,43 @@ function SearchBus() {
             </svg>
             <span>Clear</span>
           </button>
+
+          {from && !to && toRecommendationsByFrom[normalizeStopName(from)]?.length > 0 && (
+            <p className="text-sm text-purple-500">
+              Recommended destinations from <span className="font-semibold">{formatStopName(from)}</span>
+            </p>
+          )}
         </div>
       </div>
+
+      {popularRoutes.length > 0 && (
+        <div className="rounded-2xl border border-purple-100 bg-gradient-to-r from-purple-50 to-white p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-purple-100 text-purple-600">
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8L10 18l-5-5-6 6" />
+              </svg>
+            </span>
+            <div>
+              <h3 className="text-sm font-semibold text-purple-700">Recommended routes</h3>
+              <p className="text-xs text-purple-400">Quick picks based on available bus routes</p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {popularRoutes.map((item) => (
+              <button
+                key={`${item.fromNormalized}-${item.toNormalized}`}
+                type="button"
+                onClick={() => applyRouteRecommendation(item.from, item.to)}
+                className="rounded-full border border-purple-200 bg-white px-4 py-2 text-sm font-medium text-purple-700 transition hover:border-purple-400 hover:bg-purple-100"
+              >
+                {item.from} to {item.to}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Error Message */}
       {error && (

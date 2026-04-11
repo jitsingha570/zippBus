@@ -1,4 +1,3 @@
-// SearchBusByName.jsx - Complete Code
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import axios from "axios";
@@ -6,30 +5,26 @@ import BusCard from "./busCard";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
-export default function SearchBusByName() {
+export default function SearchBusByName({ compact = false }) {
   const [query, setQuery] = useState("");
   const [buses, setBuses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { route } = useParams(); // ✅ NOW route EXISTS
+  const { route } = useParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
-  if (!route) return;
+    if (!route) return;
 
-  // Decode URL-safe bus number
-  const decodedBusNumber = route
-    .replace(/-/g, " ")
-    .toUpperCase()
-    .trim();
+    const decodedBusNumber = route.replace(/-/g, " ").toUpperCase().trim();
+    setQuery(decodedBusNumber);
+    handleSearch(decodedBusNumber);
+  }, [route]);
 
-  setBusNumber(decodedBusNumber);
+  const handleSearch = async (searchValue = query) => {
+    const safeQuery = searchValue.trim();
 
-  handleSearchByBusNumber(decodedBusNumber);
-}, [route]);
-
-
-  const handleSearch = async () => {
-    if (!query.trim()) {
+    if (!safeQuery) {
       setError("Please enter bus name or number");
       return;
     }
@@ -40,22 +35,21 @@ export default function SearchBusByName() {
       setBuses([]);
 
       const res = await axios.get(
-        `${API_URL}/api/buses/search-by-name-or-number?q=${query}`
+        `${API_URL}/api/buses/search-by-name-or-number?q=${encodeURIComponent(safeQuery)}`
       );
 
       if (res.data.success) {
-        // Transform data to match BusCard expected structure
-        const transformedBuses = (res.data.buses || []).map(bus => ({
+        const transformedBuses = (res.data.buses || []).map((bus) => ({
           ...bus,
           route: {
-            from: bus.route?.from || 'N/A',
-            to: bus.route?.to || 'N/A',
-            stoppages: bus.route?.stoppages || bus.stoppages || []
-          }
+            from: bus.route?.from || "N/A",
+            to: bus.route?.to || "N/A",
+            stoppages: bus.route?.stoppages || bus.stoppages || [],
+          },
         }));
-        
+
         setBuses(transformedBuses);
-        
+
         if (transformedBuses.length === 0) {
           setError("No buses found");
         }
@@ -69,7 +63,7 @@ export default function SearchBusByName() {
   };
 
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       handleSearch();
     }
   };
@@ -78,21 +72,35 @@ export default function SearchBusByName() {
     setQuery("");
     setBuses([]);
     setError("");
+
+    if (!compact && window.location.pathname !== "/busname") {
+      navigate("/busname");
+    }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            🔍 Search Bus
-          </h1>
-          <p className="text-gray-600">Find buses by name or number</p>
-        </div>
+  const containerClassName = compact
+    ? "w-full"
+    : "min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 p-6";
 
-        {/* Search Box */}
-        <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6 md:p-8 mb-6">
+  const innerClassName = compact ? "w-full" : "max-w-4xl mx-auto";
+
+  return (
+    <div className={containerClassName}>
+      <div className={innerClassName}>
+        {!compact && (
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Search Bus
+            </h1>
+            <p className="text-gray-600">Find buses by name or number</p>
+          </div>
+        )}
+
+        <div
+          className={`bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-purple-100 p-6 md:p-8 ${
+            compact ? "" : "mb-6"
+          }`}
+        >
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
               <input
@@ -112,7 +120,7 @@ export default function SearchBusByName() {
 
             <div className="flex gap-2">
               <button
-                onClick={handleSearch}
+                onClick={() => handleSearch()}
                 disabled={loading}
                 className="bg-gradient-to-r from-purple-600 to-purple-700 text-white px-8 py-3 rounded-xl hover:from-purple-700 hover:to-purple-800 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center space-x-2"
               >
@@ -146,9 +154,8 @@ export default function SearchBusByName() {
           </div>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg mb-6">
+          <div className={`bg-red-50 border-l-4 border-red-400 p-4 rounded-lg ${compact ? "mt-6" : "mb-6"}`}>
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
@@ -162,15 +169,12 @@ export default function SearchBusByName() {
           </div>
         )}
 
-        {/* Results */}
         {buses.length > 0 && (
-          <div className="space-y-6">
+          <div className={`space-y-6 ${compact ? "mt-6" : ""}`}>
             <div className="text-center">
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                Search Results
-              </h3>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Search Results</h3>
               <p className="text-gray-600">
-                Found {buses.length} bus{buses.length > 1 ? 'es' : ''} matching "{query}"
+                Found {buses.length} bus{buses.length > 1 ? "es" : ""} matching "{query}"
               </p>
             </div>
 
@@ -182,7 +186,6 @@ export default function SearchBusByName() {
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && !error && buses.length === 0 && !query && (
           <div className="text-center py-12">
             <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
